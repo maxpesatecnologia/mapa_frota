@@ -1,12 +1,12 @@
 import React from 'react';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X, CalendarRange } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
 const FilterBar = () => {
   const { filters, setFilters, options, activeFilterCount, filtered } = useFleet();
 
   const set = (key, val) => setFilters(prev => ({ ...prev, [key]: val }));
-  const clearAll = () => setFilters({ cliente: 'all', familia: 'all', status: 'all', operador: 'all', search: '' });
+  const clearAll = () => setFilters({ cliente: 'all', familia: 'all', status: 'all', operador: 'all', search: '', dataInicio: '', dataFim: '' });
 
   const selStyle = (active) => ({
     padding: '0.4rem 0.7rem',
@@ -47,6 +47,42 @@ const FilterBar = () => {
           <X size={12} color="#94a3b8" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer' }}
             onClick={() => set('search', '')} />
         )}
+      </div>
+
+      <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
+
+      {/* Período */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+        <CalendarRange size={14} color="#94a3b8" />
+        <input
+          type="date"
+          value={filters.dataInicio}
+          onChange={e => set('dataInicio', e.target.value)}
+          style={{
+            padding: '0.4rem 0.6rem',
+            borderRadius: 8,
+            fontSize: '0.8rem',
+            border: `1px solid ${filters.dataInicio ? '#E30613' : 'var(--border)'}`,
+            background: filters.dataInicio ? 'rgba(227,6,19,0.05)' : 'white',
+            color: filters.dataInicio ? '#E30613' : 'var(--text)',
+            fontWeight: filters.dataInicio ? 600 : 400,
+          }}
+        />
+        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>até</span>
+        <input
+          type="date"
+          value={filters.dataFim}
+          onChange={e => set('dataFim', e.target.value)}
+          style={{
+            padding: '0.4rem 0.6rem',
+            borderRadius: 8,
+            fontSize: '0.8rem',
+            border: `1px solid ${filters.dataFim ? '#E30613' : 'var(--border)'}`,
+            background: filters.dataFim ? 'rgba(227,6,19,0.05)' : 'white',
+            color: filters.dataFim ? '#E30613' : 'var(--text)',
+            fontWeight: filters.dataFim ? 600 : 400,
+          }}
+        />
       </div>
 
       <div style={{ width: 1, height: 20, background: 'var(--border)' }} />

@@ -44,9 +44,13 @@ const FleetCard = ({ item }) => {
           </span>
         </div>
         {item.data && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#94a3b8' }}>
-            <Calendar size={10} />
-            <span style={{ fontSize: '0.68rem' }}>{item.data}</span>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.3rem',
+            background: '#1e293b', borderRadius: 6,
+            padding: '2px 7px', color: '#38bdf8',
+          }}>
+            <Calendar size={10} color="#38bdf8" />
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.3px' }}>{item.data}</span>
           </div>
         )}
       </div>

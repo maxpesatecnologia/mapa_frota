@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, CheckCircle, Circle, Wrench, TrendingUp, Clock } from 'lucide-react';
+import { Truck, CheckCircle, ArrowUpCircle, ArrowDownCircle, TrendingUp, Clock } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 
 const KpiItem = ({ icon, value, label, color, bg }) => (
@@ -58,18 +58,18 @@ const KpiBar = () => {
         bg="rgba(22,163,74,0.15)"
       />
       <KpiItem
-        icon={<Circle />}
-        value={kpis.disponivel}
-        label="Disponível"
-        color="#94a3b8"
-        bg="rgba(148,163,184,0.1)"
+        icon={<ArrowUpCircle />}
+        value={kpis.mobilizacao}
+        label="Mobilização"
+        color="#2563eb"
+        bg="rgba(37,99,235,0.12)"
       />
       <KpiItem
-        icon={<Wrench />}
-        value={kpis.manutencao}
-        label="Em Manutenção"
-        color="#ef4444"
-        bg="rgba(239,68,68,0.12)"
+        icon={<ArrowDownCircle />}
+        value={kpis.desmobilizacao}
+        label="Desmobilização"
+        color="#d97706"
+        bg="rgba(217,119,6,0.12)"
       />
       <KpiItem
         icon={<TrendingUp />}
