@@ -19,7 +19,7 @@ export const CadastrosProvider = ({ children }) => {
   }, []);
 
   const loadEquipamentos= useCallback(async () => {
-    const { data } = await supabase.from('equipamentos').select('*').order('nome');
+    const { data } = await supabase.from('equipamentos').select('*').order('placa');
     if (data) setEquipamentos(data);
   }, []);
 

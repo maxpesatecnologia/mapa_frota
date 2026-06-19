@@ -5,8 +5,9 @@ import {
   LineChart, Line, CartesianGrid,
 } from 'recharts';
 import { useFleet } from '../context/FleetContext';
+import { useCadastros } from '../context/CadastrosContext';
 import { getStatus, isWorking } from '../utils/statusConfig';
-import { Truck, Wrench, TrendingUp, AlertTriangle, Clock } from 'lucide-react';
+import { Truck, Wrench, TrendingUp, AlertTriangle, Clock, Upload, ArrowRight } from 'lucide-react';
 
 const COLORS = ['#E30613', '#16a34a', '#2563eb', '#d97706', '#7c3aed', '#0891b2'];
 
@@ -46,6 +47,7 @@ const Card = ({ title, children, style }) => (
 
 const Dashboard = () => {
   const { filtered, rawData } = useFleet();
+  const { equipamentos } = useCadastros();
 
   // KPIs básicos — status mais recente por equipamento
   const { byFrota, statusCount, totalEquip, operando, taxa } = useMemo(() => {
@@ -149,12 +151,75 @@ const Dashboard = () => {
   const totalQuebras  = filtered.filter(r => r.houve_quebra && r.houve_quebra.toLowerCase() !== 'não' && r.houve_quebra !== '').length;
   const totalParadas  = filtered.reduce((s, r) => s + (Number(r.horas_paradas) || 0), 0);
 
+  const familiaCount = useMemo(() => {
+    const map = {};
+    equipamentos.forEach(e => {
+      const f = e.familia || 'Sem família';
+      map[f] = (map[f] || 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [equipamentos]);
+
   if (rawData.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '0.75rem', color: '#94a3b8' }}>
-        <Truck size={48} color="#e2e8f0" />
-        <h3 style={{ color: '#94a3b8' }}>Nenhum dado disponível</h3>
-        <p style={{ fontSize: '0.875rem' }}>Importe uma planilha para visualizar o dashboard.</p>
+      <div style={{ padding: '1.5rem', overflowY: 'auto', height: '100%' }}>
+        <h1 style={{ fontSize: '1.3rem', color: '#1e293b', marginBottom: '0.25rem' }}>Dashboard</h1>
+        <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>
+          Sem dados operacionais ainda. Importe uma planilha para ver as métricas de frota.
+        </p>
+
+        {/* Catálogo de equipamentos */}
+        {equipamentos.length > 0 && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem 1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderTop: '3px solid #E30613', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: '#E3061318', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Truck size={20} color="#E30613" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e293b', lineHeight: 1 }}>{equipamentos.length}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>Equipamentos cadastrados</div>
+                </div>
+              </div>
+              <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem 1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderTop: '3px solid #7c3aed', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: '#7c3aed18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Wrench size={20} color="#7c3aed" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e293b', lineHeight: 1 }}>{familiaCount.length}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>Famílias de equipamentos</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', marginBottom: '1.5rem', maxWidth: 560 }}>
+              <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem' }}>
+                Equipamentos por Família
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {familiaCount.map(([familia, count]) => (
+                  <div key={familia} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#374151', minWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{familia}</span>
+                    <div style={{ flex: 1, height: 8, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.round((count / equipamentos.length) * 100)}%`, background: '#E30613', borderRadius: 99 }} />
+                    </div>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', minWidth: 28, textAlign: 'right' }}>{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* CTA importar */}
+        <div style={{ background: '#fff7f7', border: '1px dashed #fca5a5', borderRadius: 12, padding: '1.25rem 1.5rem', maxWidth: 480, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <Upload size={28} color="#E30613" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b', marginBottom: 4 }}>Importe dados operacionais</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Acesse <strong>Importar</strong> no menu lateral para carregar sua planilha Excel e ativar o dashboard completo.</div>
+          </div>
+          <ArrowRight size={18} color="#E30613" style={{ flexShrink: 0 }} />
+        </div>
       </div>
     );
   }
