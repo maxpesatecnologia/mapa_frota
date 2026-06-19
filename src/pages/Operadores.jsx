@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, X, Check, User } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
 
-const EMPTY = { nome: '', matricula: '' };
+const EMPTY = { nome: '', funcao: '' };
 
 const Operadores = () => {
   const { operadores, saveOperador, deleteOperador } = useCadastros();
@@ -13,8 +13,12 @@ const Operadores = () => {
   const [search, setSearch]     = useState('');
 
   const openNew  = () => { setForm(EMPTY); setEditId(null); setShowForm(true); };
-  const openEdit = (o) => { setForm({ nome: o.nome, matricula: o.matricula || '' }); setEditId(o.id); setShowForm(true); };
-  const close    = () => { setShowForm(false); setEditId(null); setForm(EMPTY); };
+  const openEdit = (o) => {
+    setForm({ nome: o.nome, funcao: o.funcao || '' });
+    setEditId(o.id);
+    setShowForm(true);
+  };
+  const close = () => { setShowForm(false); setEditId(null); setForm(EMPTY); };
 
   const handleSave = async () => {
     if (!form.nome.trim()) return;
@@ -31,7 +35,7 @@ const Operadores = () => {
 
   const filtered = operadores.filter(o =>
     o.nome.toLowerCase().includes(search.toLowerCase()) ||
-    (o.matricula || '').toLowerCase().includes(search.toLowerCase())
+    (o.funcao || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -51,7 +55,7 @@ const Operadores = () => {
       </div>
 
       <input
-        type="text" placeholder="Buscar por nome ou matrícula..."
+        type="text" placeholder="Buscar por nome ou função..."
         value={search} onChange={e => setSearch(e.target.value)}
         style={{ width: '100%', maxWidth: 340, marginBottom: '1rem', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
       />
@@ -60,7 +64,7 @@ const Operadores = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              {['Nome', 'Matrícula', ''].map(h => (
+              {['Nome', 'Função', ''].map(h => (
                 <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
               ))}
             </tr>
@@ -81,7 +85,9 @@ const Operadores = () => {
                   </div>
                 </td>
                 <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569' }}>
-                  {o.matricula ? <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 6, fontSize: '0.8rem' }}>{o.matricula}</span> : '—'}
+                  {o.funcao
+                    ? <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 20, fontSize: '0.78rem' }}>{o.funcao}</span>
+                    : '—'}
                 </td>
                 <td style={{ padding: '0.85rem 1rem' }}>
                   <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
@@ -102,21 +108,28 @@ const Operadores = () => {
               <h2 style={{ fontSize: '1.1rem', color: '#1e293b' }}>{editId ? 'Editar Operador' : 'Novo Operador'}</h2>
               <button onClick={close} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
             </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {[
-                { label: 'Nome *', key: 'nome', placeholder: 'Nome completo' },
-                { label: 'Matrícula', key: 'matricula', placeholder: 'Número da matrícula' },
+                { label: 'Nome *', key: 'nome',  placeholder: 'Nome completo' },
+                { label: 'Função', key: 'funcao', placeholder: 'Ex: Operador de Guindaste, Motorista...' },
               ].map(({ label, key, placeholder }) => (
                 <div key={key}>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>{label}</label>
-                  <input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} placeholder={placeholder}
+                  <input
+                    value={form[key]}
+                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    placeholder={placeholder}
                     style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }}
                   />
                 </div>
               ))}
             </div>
+
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-              <button onClick={close} style={{ padding: '0.55rem 1.1rem', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#64748b', cursor: 'pointer', fontSize: '0.875rem' }}>Cancelar</button>
+              <button onClick={close} style={{ padding: '0.55rem 1.1rem', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#64748b', cursor: 'pointer', fontSize: '0.875rem' }}>
+                Cancelar
+              </button>
               <button onClick={handleSave} disabled={saving || !form.nome.trim()} style={{
                 display: 'flex', alignItems: 'center', gap: '0.4rem',
                 padding: '0.55rem 1.1rem', borderRadius: 8, border: 'none',

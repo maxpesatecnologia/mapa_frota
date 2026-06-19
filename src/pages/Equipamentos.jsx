@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, X, Check, Truck } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
 
 const FAMILIAS = ['Guindaste', 'Plataforma', 'Caminhão', 'Munck', 'Outro'];
-const EMPTY = { placa: '', nome: '', familia: '', ano: '' };
+const EMPTY = { placa: '', equipamento: '', frota: '', familia: '' };
 
 const Equipamentos = () => {
   const { equipamentos, saveEquipamento, deleteEquipamento } = useCadastros();
@@ -14,11 +14,15 @@ const Equipamentos = () => {
   const [search, setSearch]     = useState('');
 
   const openNew  = () => { setForm(EMPTY); setEditId(null); setShowForm(true); };
-  const openEdit = (e) => { setForm({ placa: e.placa, nome: e.nome, familia: e.familia || '', ano: e.ano || '' }); setEditId(e.id); setShowForm(true); };
-  const close    = () => { setShowForm(false); setEditId(null); setForm(EMPTY); };
+  const openEdit = (e) => {
+    setForm({ placa: e.placa, equipamento: e.equipamento || '', frota: e.frota || '', familia: e.familia || '' });
+    setEditId(e.id);
+    setShowForm(true);
+  };
+  const close = () => { setShowForm(false); setEditId(null); setForm(EMPTY); };
 
   const handleSave = async () => {
-    if (!form.placa.trim() || !form.nome.trim()) return;
+    if (!form.placa.trim() || !form.equipamento.trim()) return;
     setSaving(true);
     await saveEquipamento(form, editId);
     setSaving(false);
@@ -32,7 +36,8 @@ const Equipamentos = () => {
 
   const filtered = equipamentos.filter(e =>
     e.placa.toLowerCase().includes(search.toLowerCase()) ||
-    e.nome.toLowerCase().includes(search.toLowerCase()) ||
+    (e.equipamento || '').toLowerCase().includes(search.toLowerCase()) ||
+    (e.frota || '').toLowerCase().includes(search.toLowerCase()) ||
     (e.familia || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -57,16 +62,16 @@ const Equipamentos = () => {
       </div>
 
       <input
-        type="text" placeholder="Buscar por placa, nome ou família..."
+        type="text" placeholder="Buscar por placa, equipamento, frota ou família..."
         value={search} onChange={e => setSearch(e.target.value)}
-        style={{ width: '100%', maxWidth: 340, marginBottom: '1rem', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
+        style={{ width: '100%', maxWidth: 380, marginBottom: '1rem', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
       />
 
       <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              {['Placa', 'Nome', 'Família', 'Ano', ''].map(h => (
+              {['Placa', 'Equipamento', 'Frota', 'Família', ''].map(h => (
                 <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
               ))}
             </tr>
@@ -88,11 +93,15 @@ const Equipamentos = () => {
                 </td>
                 <td style={{ padding: '0.85rem 1rem', fontWeight: 600, fontSize: '0.875rem', color: '#1e293b' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Truck size={13} color="#64748b" /> {e.nome}
+                    <Truck size={13} color="#64748b" /> {e.equipamento || '—'}
                   </div>
                 </td>
-                <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{e.familia || '—'}</td>
-                <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{e.ano || '—'}</td>
+                <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{e.frota || '—'}</td>
+                <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569' }}>
+                  {e.familia
+                    ? <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 20, fontSize: '0.78rem' }}>{e.familia}</span>
+                    : '—'}
+                </td>
                 <td style={{ padding: '0.85rem 1rem' }}>
                   <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
                     <button onClick={() => openEdit(e)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer' }}><Pencil size={14} /></button>
@@ -107,27 +116,34 @@ const Equipamentos = () => {
 
       {showForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', borderRadius: 14, padding: '1.75rem', width: '100%', maxWidth: 420, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
+          <div style={{ background: 'white', borderRadius: 14, padding: '1.75rem', width: '100%', maxWidth: 440, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.1rem', color: '#1e293b' }}>{editId ? 'Editar Equipamento' : 'Novo Equipamento'}</h2>
               <button onClick={close} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
             </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {[
-                { label: 'Placa *', key: 'placa', placeholder: 'Ex: GD-250-250' },
-                { label: 'Nome *', key: 'nome', placeholder: 'Ex: Guindaste 250T' },
-                { label: 'Ano', key: 'ano', placeholder: 'Ex: 2020' },
+                { label: 'Placa *',       key: 'placa',       placeholder: 'Ex: GD-250-001' },
+                { label: 'Equipamento *', key: 'equipamento', placeholder: 'Ex: Guindaste 250T' },
+                { label: 'Frota',         key: 'frota',       placeholder: 'Ex: GD-250' },
               ].map(({ label, key, placeholder }) => (
                 <div key={key}>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>{label}</label>
-                  <input value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} placeholder={placeholder}
+                  <input
+                    value={form[key]}
+                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    placeholder={placeholder}
                     style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }}
                   />
                 </div>
               ))}
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>Família</label>
-                <select value={form.familia} onChange={e => setForm(f => ({ ...f, familia: e.target.value }))}
+                <select
+                  value={form.familia}
+                  onChange={e => setForm(f => ({ ...f, familia: e.target.value }))}
                   style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.875rem' }}
                 >
                   <option value="">Selecione...</option>
@@ -135,9 +151,12 @@ const Equipamentos = () => {
                 </select>
               </div>
             </div>
+
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-              <button onClick={close} style={{ padding: '0.55rem 1.1rem', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#64748b', cursor: 'pointer', fontSize: '0.875rem' }}>Cancelar</button>
-              <button onClick={handleSave} disabled={saving || !form.placa.trim() || !form.nome.trim()} style={{
+              <button onClick={close} style={{ padding: '0.55rem 1.1rem', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#64748b', cursor: 'pointer', fontSize: '0.875rem' }}>
+                Cancelar
+              </button>
+              <button onClick={handleSave} disabled={saving || !form.placa.trim() || !form.equipamento.trim()} style={{
                 display: 'flex', alignItems: 'center', gap: '0.4rem',
                 padding: '0.55rem 1.1rem', borderRadius: 8, border: 'none',
                 background: '#E30613', color: 'white', fontWeight: 600, fontSize: '0.875rem',
