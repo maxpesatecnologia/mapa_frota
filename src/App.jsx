@@ -1,50 +1,42 @@
-import { useFleet } from './context/FleetContext';
-import UploadArea   from './components/UploadArea';
-import Header       from './components/Header';
-import KpiBar       from './components/KpiBar';
-import FilterBar    from './components/FilterBar';
-import GroupedView  from './components/GroupedView';
-import MapView      from './components/MapView';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { FleetProvider }     from './context/FleetContext';
+import { CadastrosProvider } from './context/CadastrosContext';
+import Sidebar       from './components/Sidebar';
+import Dashboard     from './pages/Dashboard';
+import Operacional   from './pages/Operacional';
+import MapView       from './components/MapView';
+import Clientes      from './pages/Clientes';
+import Operadores    from './pages/Operadores';
+import Equipamentos  from './pages/Equipamentos';
+import Importar      from './pages/Importar';
 
-const App = () => {
-  const { rawData, view, loading } = useFleet();
+const Layout = ({ children }) => (
+  <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f4f6f8' }}>
+    <Sidebar />
+    <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {children}
+    </main>
+  </div>
+);
 
-  if (loading) {
-    return (
-      <div style={{
-        height: '100vh', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-        gap: '1rem',
-      }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: '50%',
-          background: '#E30613',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <span style={{ color: 'white', fontFamily: 'Oswald', fontWeight: 700, fontSize: '1.5rem' }}>M</span>
-        </div>
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Carregando dados...</p>
-      </div>
-    );
-  }
-
-  if (rawData.length === 0) {
-    return <UploadArea />;
-  }
-
-  const contentH = 'calc(100vh - var(--header-h) - var(--kpi-h) - var(--filter-h))';
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <Header />
-      <KpiBar />
-      <FilterBar />
-      <main style={{ flex: 1, height: contentH, overflow: 'hidden' }}>
-        {view === 'cards' ? <GroupedView /> : <MapView />}
-      </main>
-    </div>
-  );
-};
+const App = () => (
+  <BrowserRouter>
+    <FleetProvider>
+      <CadastrosProvider>
+        <Layout>
+          <Routes>
+            <Route path="/"            element={<Dashboard />} />
+            <Route path="/operacional" element={<Operacional />} />
+            <Route path="/mapa"        element={<MapView />} />
+            <Route path="/clientes"    element={<Clientes />} />
+            <Route path="/operadores"  element={<Operadores />} />
+            <Route path="/equipamentos"element={<Equipamentos />} />
+            <Route path="/importar"    element={<Importar />} />
+          </Routes>
+        </Layout>
+      </CadastrosProvider>
+    </FleetProvider>
+  </BrowserRouter>
+);
 
 export default App;
