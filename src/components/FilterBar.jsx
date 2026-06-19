@@ -1,4 +1,3 @@
-import React from 'react';
 import { Search, SlidersHorizontal, X, CalendarRange } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 

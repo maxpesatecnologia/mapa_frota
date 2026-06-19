@@ -1,4 +1,3 @@
-import React from 'react';
 import { User, Building2, Calendar, Settings2 } from 'lucide-react';
 import { getStatus } from '../utils/statusConfig';
 
@@ -60,7 +59,7 @@ const FleetCard = ({ item }) => {
         {/* Frota + Família */}
         <div style={{ marginBottom: '0.6rem' }}>
           <div style={{ fontFamily: 'Oswald', fontWeight: 700, fontSize: '1.15rem', color: '#1e293b', lineHeight: 1 }}>
-            {item.frota || '—'}
+            {item.placa || item.frota || '—'}
           </div>
           {item.equipamento && (
             <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
@@ -88,11 +87,11 @@ const FleetCard = ({ item }) => {
               {item.operador || 'Sem operador'}
             </span>
           </div>
-          {item.configuracao && (
+          {(item.config_equipamento || item.configuracao) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <Settings2 size={12} color="#94a3b8" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: '0.72rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.configuracao}
+                {item.config_equipamento || item.configuracao}
               </span>
             </div>
           )}

@@ -27,11 +27,7 @@ const KpiItem = ({ icon, value, label, color, bg }) => (
 );
 
 const KpiBar = () => {
-  const { kpis, uploadedAt, filtered, rawData } = useFleet();
-
-  const fmtTime = (d) => d
-    ? `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-    : '—';
+  const { kpis, filtered, rawData } = useFleet();
 
   return (
     <div style={{
@@ -103,14 +99,14 @@ const KpiBar = () => {
         )}
       </div>
 
-      {/* Updated at */}
+      {/* Record count */}
       <div style={{ padding: '0 1.5rem', borderLeft: '1px solid #1e293b', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#475569', fontSize: '0.7rem' }}>
           <Clock size={12} />
-          <span>Atualizado em</span>
+          <span>Total no banco</span>
         </div>
         <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap' }}>
-          {fmtTime(uploadedAt)}
+          {rawData.length} registros
         </div>
       </div>
     </div>

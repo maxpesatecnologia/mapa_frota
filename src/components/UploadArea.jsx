@@ -1,32 +1,35 @@
-import React, { useRef, useState } from 'react';
-import { Upload, FileSpreadsheet, Download } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Upload, FileSpreadsheet, Download, Database } from 'lucide-react';
 import { useFleet } from '../context/FleetContext';
 import { parseExcel, generateTemplate } from '../utils/excelParser';
 
 const UploadArea = () => {
-  const { loadData } = useFleet();
-  const inputRef     = useRef();
-  const [dragging, setDragging]   = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState('');
+  const { importFromExcel, importing, importError, rawData, loading } = useFleet();
+  const inputRef  = useRef();
+  const [dragging, setDragging] = useState(false);
+  const [parsing, setParsing]   = useState(false);
+  const [parseError, setParseError] = useState('');
+  const [imported, setImported] = useState(null);
 
   const process = async (file) => {
     if (!file) return;
     const ext = file.name.split('.').pop().toLowerCase();
     if (!['xls', 'xlsx', 'xlsm'].includes(ext)) {
-      setError('Formato inválido. Use .xlsx ou .xls');
+      setParseError('Formato inválido. Use .xlsx ou .xls');
       return;
     }
-    setLoading(true);
-    setError('');
+    setParsing(true);
+    setParseError('');
+    setImported(null);
     try {
       const data = await parseExcel(file);
       if (data.length === 0) throw new Error('Nenhum dado encontrado na planilha.');
-      loadData(data, file);
+      const ok = await importFromExcel(data);
+      if (ok) setImported(data.length);
     } catch (e) {
-      setError(e.message || 'Erro ao processar a planilha.');
+      setParseError(e.message || 'Erro ao processar a planilha.');
     } finally {
-      setLoading(false);
+      setParsing(false);
     }
   };
 
@@ -35,6 +38,9 @@ const UploadArea = () => {
     setDragging(false);
     process(e.dataTransfer.files[0]);
   };
+
+  const busy = parsing || importing;
+  const error = parseError || importError;
 
   return (
     <div style={{
@@ -67,8 +73,19 @@ const UploadArea = () => {
           </div>
         </div>
         <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-          Visualização operacional em tempo real
+          {loading ? 'Carregando dados do banco...' : 'Banco de dados vazio — importe uma planilha para começar'}
         </p>
+      </div>
+
+      {/* DB status badge */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.5rem',
+        padding: '0.5rem 1rem', borderRadius: 20,
+        background: 'rgba(56,161,105,0.1)', border: '1px solid rgba(56,161,105,0.3)',
+        color: '#68d391', fontSize: '0.78rem', marginBottom: '1.5rem',
+      }}>
+        <Database size={13} />
+        {loading ? 'Conectando ao banco de dados...' : `Banco conectado · ${rawData.length} registro(s)`}
       </div>
 
       {/* Drop zone */}
@@ -76,7 +93,7 @@ const UploadArea = () => {
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !busy && inputRef.current?.click()}
         style={{
           width: '100%',
           maxWidth: 480,
@@ -85,7 +102,7 @@ const UploadArea = () => {
           background: dragging ? 'rgba(227,6,19,0.05)' : 'rgba(255,255,255,0.03)',
           padding: '3rem 2rem',
           textAlign: 'center',
-          cursor: 'pointer',
+          cursor: busy ? 'not-allowed' : 'pointer',
           transition: 'all 0.2s ease',
           transform: dragging ? 'scale(1.02)' : 'scale(1)',
         }}
@@ -98,10 +115,22 @@ const UploadArea = () => {
           onChange={(e) => process(e.target.files[0])}
         />
 
-        {loading ? (
+        {busy ? (
           <div style={{ color: '#94a3b8' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '1rem', animation: 'pulse 1s infinite' }}>⏳</div>
-            <p style={{ fontWeight: 600, color: 'white' }}>Processando planilha...</p>
+            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⏳</div>
+            <p style={{ fontWeight: 600, color: 'white' }}>
+              {parsing ? 'Lendo planilha...' : 'Salvando no banco de dados...'}
+            </p>
+          </div>
+        ) : imported ? (
+          <div>
+            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>✅</div>
+            <p style={{ fontWeight: 600, color: '#68d391', marginBottom: '0.5rem' }}>
+              {imported} registros importados com sucesso!
+            </p>
+            <p style={{ color: '#64748b', fontSize: '0.8rem' }}>
+              Clique aqui para importar mais dados
+            </p>
           </div>
         ) : (
           <>
@@ -150,13 +179,16 @@ const UploadArea = () => {
         <button
           onClick={generateTemplate}
           style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
             background: 'transparent',
             border: '1px solid #334155',
             borderRadius: 8,
             padding: '0.5rem 1.2rem',
             color: '#94a3b8',
             fontSize: '0.8rem',
-            gap: '0.4rem',
+            cursor: 'pointer',
           }}
         >
           <Download size={14} />
@@ -165,10 +197,13 @@ const UploadArea = () => {
       </div>
 
       {/* Fields hint */}
-      <div style={{ marginTop: '2rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 480 }}>
-        {['Data', 'Frota', 'Equipamento', 'Família', 'Cliente', 'Operador', 'Status', 'Configuração'].map(f => (
+      <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 540 }}>
+        {['Data', 'Mês', 'Dia', 'Placa', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente',
+          'Config. Equipamento', 'Operador', 'Parte Diária', 'Início Operação', 'Intervalo',
+          'Fim Operação', 'Total Horas', 'Houve Quebra', 'Motivo', 'Item Motivo',
+          'Horas Paradas', 'Hor-Km Início', 'Hor-Km Final', 'Hor-Km Total'].map(f => (
           <span key={f} style={{
-            fontSize: '0.72rem', padding: '3px 8px', borderRadius: 20,
+            fontSize: '0.68rem', padding: '2px 7px', borderRadius: 20,
             background: 'rgba(255,255,255,0.06)', color: '#64748b',
             border: '1px solid rgba(255,255,255,0.08)',
           }}>{f}</span>

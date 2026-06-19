@@ -87,7 +87,7 @@ const ClientGroup = ({ cliente, items }) => {
           borderRadius: '0 0 10px 10px',
         }}>
           {items.map((item, i) => (
-            <FleetCard key={`${item.frota}-${i}`} item={item} />
+            <FleetCard key={item.id || `${item.placa || item.frota}-${i}`} item={item} />
           ))}
         </div>
       )}

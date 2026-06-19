@@ -1,7 +1,5 @@
 import * as XLSX from 'xlsx';
 
-// Normalize a column header for fuzzy matching:
-// lowercase + remove Portuguese accents + keep only alphanumeric
 const norm = (s) =>
   String(s).toLowerCase().trim()
     .replace(/[aáàâãä]/g, 'a')
@@ -18,7 +16,6 @@ const fmtDate = (v) => {
   return String(v);
 };
 
-// Retorna YYYY-MM-DD para comparação no filtro de data
 const toIsoDate = (v) => {
   if (!v) return '';
   if (v instanceof Date) {
@@ -27,11 +24,17 @@ const toIsoDate = (v) => {
     const d = String(v.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   }
-  // Tenta parsear DD/MM/YYYY
   const s = String(v).trim();
   const parts = s.split('/');
   if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
   return '';
+};
+
+const str = (v) => (v !== undefined && v !== null) ? String(v).trim() : '';
+const num = (v) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = parseFloat(String(v).replace(',', '.'));
+  return isNaN(n) ? null : n;
 };
 
 export const parseExcel = (file) =>
@@ -45,12 +48,10 @@ export const parseExcel = (file) =>
 
         if (rows.length === 0) { resolve([]); return; }
 
-        // Build a map: normalizedHeader -> originalHeader
         const rawKeys = Object.keys(rows[0]);
         const keyMap = {};
         rawKeys.forEach((k) => { keyMap[norm(k)] = k; });
 
-        // Find the best matching original column key from a list of aliases
         const findKey = (...aliases) => {
           for (const alias of aliases) {
             const found = keyMap[norm(alias)];
@@ -59,31 +60,64 @@ export const parseExcel = (file) =>
           return null;
         };
 
-        const kData    = findKey('data', 'dt', 'date', 'data programacao', 'dataprog');
-        const kFrota   = findKey('frota', 'n frota', 'numero frota', 'nfrota', 'cod frota', 'placa', 'equipamento id');
-        const kEquip   = findKey('equipamento', 'equip', 'descricao', 'desc', 'maquina', 'descequipamento');
-        const kFamilia = findKey('familia', 'tipo', 'categoria', 'tipoequip', 'tipo equipamento', 'classe');
-        const kCliente = findKey('cliente', 'clientes', 'cliente 1 nome 2', 'CLIENTE (1º NOME)2', 'local', 'obra', 'contrato', 'nome cliente', 'nomecliente', 'localobra');
-        const kOper    = findKey('operador', 'operadores', 'nome operador', 'nomeoperador', 'motorista', 'condutor', 'colaborador');
-        const kStatus  = findKey('status', 'situacao', 'situação', 'estado', 'condicao');
-        const kConfig  = findKey('configuracao', 'configuração', 'config', 'composicao', 'acessorio', 'observacao');
-
         const get = (row, key) =>
           (key !== null && row[key] !== undefined && row[key] !== null) ? row[key] : '';
 
+        const kData     = findKey('data', 'dt', 'date', 'data programacao', 'dataprog');
+        const kMes      = findKey('mes', 'month', 'mês');
+        const kDia      = findKey('dia', 'day');
+        const kPlaca    = findKey('placa', 'frota', 'n frota', 'numero frota', 'nfrota', 'cod frota', 'equipamento id');
+        const kEquip    = findKey('equipamento', 'equip', 'descricao', 'desc', 'maquina', 'descequipamento');
+        const kFamilia  = findKey('familia', 'tipo', 'categoria', 'tipoequip', 'tipo equipamento', 'classe');
+        const kFrota    = findKey('frota', 'n frota', 'numero frota', 'nfrota');
+        const kStatus   = findKey('status', 'situacao', 'situação', 'estado', 'condicao');
+        const kCliente  = findKey('cliente', 'clientes', 'local', 'obra', 'contrato', 'nome cliente', 'nomecliente');
+        const kConfig   = findKey('configuracao', 'configuração', 'config', 'config equipamento', 'configuracaoequipamento', 'composicao', 'acessorio', 'observacao');
+        const kOper     = findKey('operador', 'operadores', 'nome operador', 'nomeoperador', 'motorista', 'condutor', 'colaborador');
+        const kParte    = findKey('parte diaria', 'partediaria', 'parte', 'num parte', 'numeroparte');
+        const kInicio   = findKey('inicio da operacao', 'iniciodaoperacao', 'inicio operacao', 'inicio', 'hora inicio');
+        const kIntervalo= findKey('intervalo', 'pausa', 'almoco', 'descanso');
+        const kFim      = findKey('fim da operacao', 'fimdaoperacao', 'fim operacao', 'fim', 'hora fim', 'termino');
+        const kTotalH   = findKey('total de horas', 'totaldehoras', 'total horas', 'horas trabalhadas', 'horastrabalhadas');
+        const kQuebra   = findKey('houve quebra', 'houvequebra', 'quebra', 'falha', 'parada');
+        const kMotivo   = findKey('motivo', 'motivo parada', 'motivoparada', 'causa');
+        const kItem     = findKey('item do motivo', 'itemdomotivo', 'item motivo', 'item', 'componente');
+        const kHoraPar  = findKey('horas paradas', 'horasparadas', 'hrs paradas', 'tempo parado');
+        const kHorIni   = findKey('hor km inicio', 'horkmini', 'horim', 'horimetro inicio', 'km inicio', 'hor inicio');
+        const kHorFim   = findKey('hor km final', 'horkmfinal', 'horfim', 'horimetro final', 'km final', 'hor final');
+        const kHorTot   = findKey('hor km total', 'horkmtotal', 'hortotal', 'km total', 'horimetro total');
+
         const normalized = rows
-          .map((row) => ({
-            data:         fmtDate(get(row, kData)),
-            isoDate:      toIsoDate(get(row, kData)),
-            frota:        String(get(row, kFrota)).trim(),
-            equipamento:  String(get(row, kEquip)).trim(),
-            familia:      String(get(row, kFamilia)).trim(),
-            cliente:      String(get(row, kCliente)).trim(),
-            operador:     String(get(row, kOper)).trim(),
-            status:       String(get(row, kStatus)).trim(),
-            configuracao: String(get(row, kConfig)).trim(),
-          }))
-          .filter((r) => r.frota);
+          .map((row) => {
+            const rawDate = get(row, kData);
+            return {
+              data:              fmtDate(rawDate),
+              iso_date:          toIsoDate(rawDate),
+              mes:               str(get(row, kMes)),
+              dia:               str(get(row, kDia)),
+              placa:             str(get(row, kPlaca)),
+              equipamento:       str(get(row, kEquip)),
+              familia:           str(get(row, kFamilia)),
+              frota:             str(get(row, kFrota)) || str(get(row, kPlaca)),
+              status:            str(get(row, kStatus)),
+              cliente:           str(get(row, kCliente)),
+              config_equipamento:str(get(row, kConfig)),
+              operador:          str(get(row, kOper)),
+              parte_diaria:      str(get(row, kParte)),
+              inicio_operacao:   str(get(row, kInicio)),
+              intervalo:         str(get(row, kIntervalo)),
+              fim_operacao:      str(get(row, kFim)),
+              total_horas:       num(get(row, kTotalH)),
+              houve_quebra:      str(get(row, kQuebra)),
+              motivo:            str(get(row, kMotivo)),
+              item_motivo:       str(get(row, kItem)),
+              horas_paradas:     num(get(row, kHoraPar)),
+              hor_km_inicio:     num(get(row, kHorIni)),
+              hor_km_final:      num(get(row, kHorFim)),
+              hor_km_total:      num(get(row, kHorTot)),
+            };
+          })
+          .filter((r) => r.placa || r.frota);
 
         resolve(normalized);
       } catch (err) {
@@ -94,22 +128,49 @@ export const parseExcel = (file) =>
     reader.readAsArrayBuffer(file);
   });
 
-export const generateTemplate = () => {
-  const data = [
-    ['Data', 'Frota', 'Equipamento', 'Familia', 'Cliente', 'Operador', 'Status', 'Configuracao'],
-    ['15/01/2026', 'GD-250-250', 'Guindaste 250T', 'Guindaste', 'Eletronuclear', 'Sirlei Macedo', 'T', '250T c/ lanca 80m'],
-    ['15/01/2026', 'GD-080-252', 'Guindaste 80T',  'Guindaste', 'Eletronuclear', 'Carlos Lima',   'T', '80T c/ jib'],
-    ['15/01/2026', 'GD-110-240', 'Guindaste 110T', 'Guindaste', 'Vale',          'Joao Silva',    'T', '110T padrao'],
-    ['15/01/2026', 'GD-180-300', 'Guindaste 180T', 'Guindaste', 'Base Maxpesa',  '',              'D', ''],
-    ['15/01/2026', 'GD-220-180', 'Guindaste 220T', 'Guindaste', 'Base Maxpesa',  '',              'Corretiva', 'Aguardando pecas'],
-    ['15/01/2026', 'PL-040-010', 'Plataforma 40T', 'Plataforma', 'Petrobras',    'Ana Costa',     'T', ''],
+export const exportToExcel = (data, fileName = 'frota_export.xlsx') => {
+  const headers = [
+    'Data', 'Mês', 'Dia', 'Placa', 'Equipamento', 'Família', 'Frota',
+    'Status', 'Cliente', 'Config. Equipamento', 'Operador', 'Parte Diária',
+    'Início da Operação', 'Intervalo', 'Fim da Operação', 'Total de Horas',
+    'Houve Quebra', 'Motivo', 'Item do Motivo', 'Horas Paradas',
+    'Hor-Km Início', 'Hor-Km Final', 'Hor-Km Total',
   ];
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [
-    { wch: 12 }, { wch: 14 }, { wch: 18 }, { wch: 14 },
-    { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 20 },
-  ];
+
+  const rows = data.map(r => [
+    r.data, r.mes, r.dia, r.placa, r.equipamento, r.familia, r.frota,
+    r.status, r.cliente, r.config_equipamento, r.operador, r.parte_diaria,
+    r.inicio_operacao, r.intervalo, r.fim_operacao, r.total_horas,
+    r.houve_quebra, r.motivo, r.item_motivo, r.horas_paradas,
+    r.hor_km_inicio, r.hor_km_final, r.hor_km_total,
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map(() => ({ wch: 18 }));
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Programacao');
+  XLSX.utils.book_append_sheet(wb, ws, 'Frota');
+  XLSX.writeFile(wb, fileName);
+};
+
+export const generateTemplate = () => {
+  const headers = [
+    'Data', 'Mês', 'Dia', 'Placa', 'Equipamento', 'Família', 'Frota',
+    'Status', 'Cliente', 'Config. Equipamento', 'Operador', 'Parte Diária',
+    'Início da Operação', 'Intervalo', 'Fim da Operação', 'Total de Horas',
+    'Houve Quebra', 'Motivo', 'Item do Motivo', 'Horas Paradas',
+    'Hor-Km Início', 'Hor-Km Final', 'Hor-Km Total',
+  ];
+  const example = [
+    '15/01/2026', 'Janeiro', '15', 'GD-250-250', 'Guindaste 250T', 'Guindaste', 'GD-250-250',
+    'T', 'Eletronuclear', '250T c/ lança 80m', 'Sirlei Macedo', '001',
+    '07:00', '12:00-13:00', '17:00', 9,
+    'Não', '', '', 0,
+    1250, 1259, 9,
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  ws['!cols'] = headers.map(() => ({ wch: 18 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Template');
   XLSX.writeFile(wb, 'template_frota_maxpesa.xlsx');
 };

@@ -1,14 +1,17 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
 import { isWorking, isMobilization, isDemobilization } from '../utils/statusConfig';
 
 const FleetContext = createContext(null);
+const TABLE = 'frota_diario';
 
 export const FleetProvider = ({ children }) => {
-  const [rawData, setRawData]       = useState([]);
-  const [view, setView]             = useState('cards');   // 'cards' | 'map'
-  const [uploadedAt, setUploadedAt] = useState(null);
-  const [fileName, setFileName]     = useState('');
-  const [filters, setFilters]       = useState({
+  const [rawData, setRawData]   = useState([]);
+  const [view, setView]         = useState('cards');
+  const [loading, setLoading]   = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [filters, setFilters]   = useState({
     cliente:    'all',
     familia:    'all',
     status:     'all',
@@ -18,17 +21,56 @@ export const FleetProvider = ({ children }) => {
     dataFim:    '',
   });
 
-  const loadData = (data, file) => {
-    setRawData(data);
-    setUploadedAt(new Date());
-    setFileName(file?.name || '');
-    setFilters({ cliente: 'all', familia: 'all', status: 'all', operador: 'all', search: '', dataInicio: '', dataFim: '' });
+  // Carrega dados do Supabase ao iniciar
+  const loadFromDB = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .order('iso_date', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao carregar dados:', error.message);
+    } else {
+      setRawData(data || []);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadFromDB(); }, [loadFromDB]);
+
+  // Importa do Excel → insere no Supabase → recarrega
+  const importFromExcel = async (rows) => {
+    setImporting(true);
+    setImportError('');
+
+    // Remove campos extras que não existem na tabela
+    const clean = rows.map(({ data, ...rest }) => ({ ...rest }));
+
+    const CHUNK = 500;
+    for (let i = 0; i < clean.length; i += CHUNK) {
+      const chunk = clean.slice(i, i + CHUNK);
+      const { error } = await supabase.from(TABLE).insert(chunk);
+      if (error) {
+        setImportError(`Erro ao importar: ${error.message}`);
+        setImporting(false);
+        return false;
+      }
+    }
+
+    await loadFromDB();
+    setImporting(false);
+    return true;
   };
 
-  const clearData = () => {
-    setRawData([]);
-    setUploadedAt(null);
-    setFileName('');
+  // Apaga todos os registros (com confirmação no componente)
+  const clearData = async () => {
+    const { error } = await supabase.from(TABLE).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (!error) {
+      setRawData([]);
+      setFilters({ cliente: 'all', familia: 'all', status: 'all', operador: 'all', search: '', dataInicio: '', dataFim: '' });
+    }
+    return !error;
   };
 
   const options = useMemo(() => ({
@@ -47,48 +89,51 @@ export const FleetProvider = ({ children }) => {
         if (filters.operador !== 'all' && r.operador !== filters.operador) return false;
         if (filters.search) {
           const q = filters.search.toLowerCase();
-          const fields = [r.frota, r.equipamento, r.cliente, r.operador, r.familia].join(' ').toLowerCase();
+          const fields = [r.frota, r.placa, r.equipamento, r.cliente, r.operador, r.familia].join(' ').toLowerCase();
           if (!fields.includes(q)) return false;
         }
-        if (filters.dataInicio && r.isoDate < filters.dataInicio) return false;
-        if (filters.dataFim    && r.isoDate > filters.dataFim)    return false;
+        if (filters.dataInicio && r.iso_date < filters.dataInicio) return false;
+        if (filters.dataFim    && r.iso_date > filters.dataFim)    return false;
         return true;
       })
       .sort((a, b) => {
-        if (b.isoDate > a.isoDate) return 1;
-        if (b.isoDate < a.isoDate) return -1;
-        return (a.frota || '').localeCompare(b.frota || '', 'pt-BR');
+        if (b.iso_date > a.iso_date) return 1;
+        if (b.iso_date < a.iso_date) return -1;
+        return (a.placa || a.frota || '').localeCompare(b.placa || b.frota || '', 'pt-BR');
       });
   }, [rawData, filters]);
 
   const kpis = useMemo(() => {
-    // Conta frotas distintas — usa o status da data mais recente de cada frota
     const byFrota = new Map();
     filtered.forEach(r => {
-      const prev = byFrota.get(r.frota);
-      if (!prev || r.isoDate >= prev.isoDate) byFrota.set(r.frota, r);
+      const key = r.placa || r.frota;
+      const prev = byFrota.get(key);
+      if (!prev || r.iso_date >= prev.iso_date) byFrota.set(key, r);
     });
-    const unique        = Array.from(byFrota.values());
-    const total         = unique.length;
-    const operando      = unique.filter(r => isWorking(r.status)).length;
-    const mobilizacao   = unique.filter(r => isMobilization(r.status)).length;
-    const desmobilizacao= unique.filter(r => isDemobilization(r.status)).length;
-    const taxa          = total > 0 ? Math.round((operando / total) * 100) : 0;
+    const unique         = Array.from(byFrota.values());
+    const total          = unique.length;
+    const operando       = unique.filter(r => isWorking(r.status)).length;
+    const mobilizacao    = unique.filter(r => isMobilization(r.status)).length;
+    const desmobilizacao = unique.filter(r => isDemobilization(r.status)).length;
+    const taxa           = total > 0 ? Math.round((operando / total) * 100) : 0;
     return { total, operando, mobilizacao, desmobilizacao, taxa };
   }, [filtered]);
 
-  const activeFilterCount = Object.entries(filters).filter(([k, v]) => k !== 'search' && k !== 'dataInicio' && k !== 'dataFim' && v !== 'all').length
+  const activeFilterCount = Object.entries(filters).filter(([k, v]) =>
+    k !== 'search' && k !== 'dataInicio' && k !== 'dataFim' && v !== 'all'
+  ).length
     + (filters.search ? 1 : 0)
     + (filters.dataInicio ? 1 : 0)
     + (filters.dataFim    ? 1 : 0);
 
   return (
     <FleetContext.Provider value={{
-      rawData, loadData, clearData,
-      filtered, options,
+      rawData, filtered, options,
       filters, setFilters,
       view, setView,
-      kpis, uploadedAt, fileName,
+      kpis,
+      loading, importing, importError,
+      importFromExcel, clearData, loadFromDB,
       activeFilterCount,
     }}>
       {children}
