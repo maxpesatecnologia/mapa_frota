@@ -8,6 +8,10 @@ import MapView       from './components/MapView';
 import Clientes      from './pages/Clientes';
 import Operadores    from './pages/Operadores';
 import Equipamentos  from './pages/Equipamentos';
+import Status        from './pages/Status';
+import Motivos       from './pages/Motivos';
+import ItensMotivo   from './pages/ItensMotivo';
+import Programacao   from './pages/Programacao';
 import Importar      from './pages/Importar';
 
 const Layout = ({ children }) => (
@@ -31,6 +35,10 @@ const App = () => (
             <Route path="/clientes"    element={<Clientes />} />
             <Route path="/operadores"  element={<Operadores />} />
             <Route path="/equipamentos"element={<Equipamentos />} />
+            <Route path="/status"      element={<Status />} />
+            <Route path="/motivos"     element={<Motivos />} />
+            <Route path="/itens-motivo"element={<ItensMotivo />} />
+            <Route path="/programacao" element={<Programacao />} />
             <Route path="/importar"    element={<Importar />} />
           </Routes>
         </Layout>

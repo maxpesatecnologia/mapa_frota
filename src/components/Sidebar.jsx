@@ -1,12 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, LayoutGrid, Map, Upload,
-  Building2, Users, Truck, ChevronDown, ChevronRight,
+  Building2, Users, Truck, ChevronDown, ChevronRight, Calendar,
+  Activity, List, Tags
 } from 'lucide-react';
 import { useState } from 'react';
 
 const NAV = [
   { to: '/',          icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+  { to: '/programacao',icon: <Calendar size={18} />,       label: 'Programação' },
   { to: '/operacional',icon: <LayoutGrid size={18} />,     label: 'Mapa Operacional' },
   { to: '/mapa',      icon: <Map size={18} />,             label: 'Mapa' },
 ];
@@ -15,6 +17,9 @@ const CADASTROS = [
   { to: '/clientes',    icon: <Building2 size={16} />, label: 'Clientes' },
   { to: '/operadores',  icon: <Users size={16} />,     label: 'Operadores' },
   { to: '/equipamentos',icon: <Truck size={16} />,     label: 'Equipamentos' },
+  { to: '/status',      icon: <Activity size={16} />,  label: 'Status' },
+  { to: '/motivos',     icon: <List size={16} />,      label: 'Motivos de Quebra' },
+  { to: '/itens-motivo',icon: <Tags size={16} />,      label: 'Itens de Motivo' },
 ];
 
 const linkStyle = ({ isActive }) => ({
