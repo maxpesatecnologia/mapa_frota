@@ -173,7 +173,62 @@ export const CadastrosProvider = ({ children }) => {
   const deleteItemMotivo = async (id) => {
     const { error } = await supabase.from('itens_motivo').delete().eq('id', id);
     if (!error) await loadItensMotivo();
-    return !error;
+    else {
+      console.error(error);
+    }
+  };
+
+  const importProgramacaoExcel = async (parsedData) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      const toInsert = parsedData.map(d => ({
+        user_id: session.user.id,
+        data: d.iso_date || null,
+        placa: d.placa,
+        dia: d.dia,
+        equipamento: d.equipamento,
+        familia: d.familia,
+        frota: d.frota,
+        status: d.status,
+        cliente: d.cliente,
+        config_equipamento: d.config_equipamento,
+        operador: d.operador,
+        parte_diaria: d.parte_diaria,
+        inicio_operacao: d.inicio_operacao,
+        intervalo: d.intervalo,
+        fim_operacao: d.fim_operacao,
+        total_horas: d.total_horas !== null ? String(d.total_horas) : null,
+        houve_quebra: String(d.houve_quebra).toLowerCase() === 'sim' || String(d.houve_quebra).toLowerCase() === 'true',
+        motivo: d.motivo,
+        item_motivo: d.item_motivo,
+        horas_paradas: d.horas_paradas !== null ? String(d.horas_paradas) : null,
+        km_inicial: d.hor_km_inicio,
+        km_final: d.hor_km_final,
+        km_total: d.hor_km_total
+      }));
+
+      const { error } = await supabase.from('programacao').insert(toInsert);
+      if (error) throw error;
+      
+      await loadCadastros();
+      return true;
+    } catch (e) {
+      console.error('Erro na importação de programacao:', e);
+      throw e;
+    }
+  };
+
+  const clearProgramacao = async () => {
+    try {
+      const { error } = await supabase.from('programacao').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) throw error;
+      await loadCadastros();
+    } catch (e) {
+      console.error('Erro ao limpar programacao:', e);
+      throw e;
+    }
   };
 
   return (
@@ -186,6 +241,8 @@ export const CadastrosProvider = ({ children }) => {
       saveStatus, deleteStatus,
       saveMotivo, deleteMotivo,
       saveItemMotivo, deleteItemMotivo,
+      importProgramacaoExcel,
+      clearProgramacao,
       loadClientes, loadOperadores, loadEquipamentos, loadProgramacoes,
     }}>
       {children}
