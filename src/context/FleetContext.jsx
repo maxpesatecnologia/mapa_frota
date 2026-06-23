@@ -24,16 +24,34 @@ export const FleetProvider = ({ children }) => {
   // Carrega dados do Supabase ao iniciar
   const loadFromDB = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select('*')
-      .order('iso_date', { ascending: false });
+    let allData = [];
+    let from = 0;
+    const step = 1000;
+    let hasMore = true;
 
-    if (error) {
-      console.error('Erro ao carregar dados:', error.message);
-    } else {
-      setRawData(data || []);
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from(TABLE)
+        .select('*')
+        .order('iso_date', { ascending: false })
+        .range(from, from + step - 1);
+
+      if (error) {
+        console.error('Erro ao carregar dados:', error.message);
+        break;
+      }
+      
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += step;
+      }
+      
+      if (!data || data.length < step) {
+        hasMore = false;
+      }
     }
+
+    setRawData(allData);
     setLoading(false);
   }, []);
 

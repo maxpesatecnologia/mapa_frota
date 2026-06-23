@@ -11,6 +11,7 @@ export const CadastrosProvider = ({ children }) => {
   const [statusList,  setStatusList]  = useState([]);
   const [motivosList, setMotivosList] = useState([]);
   const [itensMotivoList, setItensMotivoList] = useState([]);
+  const [anexosByProg, setAnexosByProg] = useState({});
 
   const loadClientes    = useCallback(async () => {
     const { data } = await supabase.from('clientes').select('*').order('nome');
@@ -28,8 +29,31 @@ export const CadastrosProvider = ({ children }) => {
   }, []);
 
   const loadProgramacoes= useCallback(async () => {
-    const { data } = await supabase.from('programacao').select('*').order('data', { ascending: false });
-    if (data) setProgramacoes(data);
+    let allData = [];
+    let from = 0;
+    const step = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('programacao')
+        .select('*')
+        .order('data', { ascending: false })
+        .range(from, from + step - 1);
+
+      if (error) {
+        console.error('Erro loadProgramacoes:', error.message);
+        break;
+      }
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += step;
+      }
+      if (!data || data.length < step) {
+        hasMore = false;
+      }
+    }
+    setProgramacoes(allData);
   }, []);
 
   const loadStatus = useCallback(async () => {
@@ -115,14 +139,67 @@ export const CadastrosProvider = ({ children }) => {
       if (!error) await loadProgramacoes();
       return !error;
     }
-    const { error } = await supabase.from('programacao').insert(form);
-    if (!error) await loadProgramacoes();
-    return !error;
+    const { data, error } = await supabase.from('programacao').insert(form).select().single();
+    if (!error) { await loadProgramacoes(); return data; }
+    return null;
   };
   const deleteProgramacao = async (id) => {
     const { error } = await supabase.from('programacao').delete().eq('id', id);
-    if (!error) await loadProgramacoes();
+    if (!error) {
+      await loadProgramacoes();
+      setAnexosByProg(prev => { const n = { ...prev }; delete n[id]; return n; });
+    }
     return !error;
+  };
+
+  // ANEXOS
+  const loadAnexos = useCallback(async (programacaoId) => {
+    if (!programacaoId) return [];
+    const { data } = await supabase
+      .from('programacao_anexos')
+      .select('*')
+      .eq('programacao_id', programacaoId)
+      .order('created_at', { ascending: true });
+    const lista = data || [];
+    setAnexosByProg(prev => ({ ...prev, [programacaoId]: lista }));
+    return lista;
+  }, []);
+
+  const uploadAnexo = async (file, programacaoId) => {
+    const ext = file.name.split('.').pop();
+    const path = `${programacaoId}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await supabase.storage
+      .from('programacao-anexos')
+      .upload(path, file, { upsert: false });
+    if (upErr) throw upErr;
+
+    const { data: pubData } = supabase.storage
+      .from('programacao-anexos')
+      .getPublicUrl(path);
+
+    const registro = {
+      programacao_id: programacaoId,
+      nome_arquivo: file.name,
+      storage_path: path,
+      tipo_arquivo: ext.toLowerCase(),
+      tamanho_bytes: file.size,
+    };
+    const { data, error } = await supabase.from('programacao_anexos').insert(registro).select().single();
+    if (error) throw error;
+    await loadAnexos(programacaoId);
+    return { ...data, url: pubData.publicUrl };
+  };
+
+  const deleteAnexo = async (anexo) => {
+    await supabase.storage.from('programacao-anexos').remove([anexo.storage_path]);
+    const { error } = await supabase.from('programacao_anexos').delete().eq('id', anexo.id);
+    if (!error) await loadAnexos(anexo.programacao_id);
+    return !error;
+  };
+
+  const getAnexoUrl = (storagePath) => {
+    const { data } = supabase.storage.from('programacao-anexos').getPublicUrl(storagePath);
+    return data?.publicUrl || '';
   };
 
   // STATUS
@@ -180,11 +257,7 @@ export const CadastrosProvider = ({ children }) => {
 
   const importProgramacaoExcel = async (parsedData) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Não autenticado');
-
       const toInsert = parsedData.map(d => ({
-        user_id: session.user.id,
         data: d.iso_date || null,
         placa: d.placa,
         dia: d.dia,
@@ -209,10 +282,14 @@ export const CadastrosProvider = ({ children }) => {
         km_total: d.hor_km_total
       }));
 
-      const { error } = await supabase.from('programacao').insert(toInsert);
-      if (error) throw error;
+      const chunkSize = 500;
+      for (let i = 0; i < toInsert.length; i += chunkSize) {
+        const chunk = toInsert.slice(i, i + chunkSize);
+        const { error } = await supabase.from('programacao').insert(chunk);
+        if (error) throw error;
+      }
       
-      await loadCadastros();
+      await loadProgramacoes();
       return true;
     } catch (e) {
       console.error('Erro na importação de programacao:', e);
@@ -224,7 +301,7 @@ export const CadastrosProvider = ({ children }) => {
     try {
       const { error } = await supabase.from('programacao').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       if (error) throw error;
-      await loadCadastros();
+      await loadProgramacoes();
     } catch (e) {
       console.error('Erro ao limpar programacao:', e);
       throw e;
@@ -234,6 +311,7 @@ export const CadastrosProvider = ({ children }) => {
   return (
     <CadastrosContext.Provider value={{
       clientes, operadores, equipamentos, programacoes, statusList, motivosList, itensMotivoList,
+      anexosByProg,
       saveCliente, deleteCliente,
       saveOperador, deleteOperador,
       saveEquipamento, deleteEquipamento,
@@ -244,6 +322,7 @@ export const CadastrosProvider = ({ children }) => {
       importProgramacaoExcel,
       clearProgramacao,
       loadClientes, loadOperadores, loadEquipamentos, loadProgramacoes,
+      loadAnexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     }}>
       {children}
     </CadastrosContext.Provider>

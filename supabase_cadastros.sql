@@ -115,3 +115,37 @@ create policy "itens_motivo_select" on itens_motivo for select using (true);
 create policy "itens_motivo_insert" on itens_motivo for insert with check (true);
 create policy "itens_motivo_update" on itens_motivo for update using (true);
 create policy "itens_motivo_delete" on itens_motivo for delete using (true);
+
+-- ══════════════════════════════════════════════════════
+-- MIGRATION: Anotações e Anexos na Programação
+-- Execute no Supabase > SQL Editor
+-- ══════════════════════════════════════════════════════
+
+-- 1. Coluna de anotação na tabela programacao
+ALTER TABLE programacao ADD COLUMN IF NOT EXISTS anotacao text;
+
+-- 2. Tabela de anexos vinculados a programações
+CREATE TABLE IF NOT EXISTS programacao_anexos (
+  id              uuid primary key default gen_random_uuid(),
+  created_at      timestamptz default now(),
+  programacao_id  uuid references programacao(id) on delete cascade,
+  nome_arquivo    text not null,
+  storage_path    text not null,
+  tipo_arquivo    text,
+  tamanho_bytes   bigint
+);
+ALTER TABLE programacao_anexos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anexos_select" ON programacao_anexos FOR SELECT USING (true);
+CREATE POLICY "anexos_insert" ON programacao_anexos FOR INSERT WITH CHECK (true);
+CREATE POLICY "anexos_update" ON programacao_anexos FOR UPDATE USING (true);
+CREATE POLICY "anexos_delete" ON programacao_anexos FOR DELETE USING (true);
+
+-- 3. Bucket de Storage para os arquivos (público)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('programacao-anexos', 'programacao-anexos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 4. Políticas de acesso ao Storage
+CREATE POLICY "storage_prog_select" ON storage.objects FOR SELECT USING (bucket_id = 'programacao-anexos');
+CREATE POLICY "storage_prog_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'programacao-anexos');
+CREATE POLICY "storage_prog_delete" ON storage.objects FOR DELETE USING (bucket_id = 'programacao-anexos');

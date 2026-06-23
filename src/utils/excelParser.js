@@ -16,6 +16,24 @@ const fmtDate = (v) => {
   return String(v);
 };
 
+const fmtTime = (v) => {
+  if (v === undefined || v === null || v === '') return '';
+  if (v instanceof Date) {
+    const h = String(v.getHours()).padStart(2, '0');
+    const m = String(v.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  if (typeof v === 'number') {
+    const totalMins = Math.round(v * 24 * 60);
+    const h = String(Math.floor(totalMins / 60)).padStart(2, '0');
+    const m = String(totalMins % 60).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  const s = String(v).trim();
+  if (/^\d{1,2}:\d{2}/.test(s)) return s.substring(0, 5);
+  return s;
+};
+
 const toIsoDate = (v) => {
   if (!v) return '';
   if (v instanceof Date) {
@@ -83,13 +101,34 @@ export const parseExcel = (file) =>
         const kMotivo   = findKey('motivo', 'motivo parada', 'motivoparada', 'causa');
         const kItem     = findKey('item do motivo', 'itemdomotivo', 'item motivo', 'item', 'componente');
         const kHoraPar  = findKey('horas paradas', 'horasparadas', 'hrs paradas', 'tempo parado');
-        const kHorIni   = findKey('hor km inicio', 'horkmini', 'horim', 'horimetro inicio', 'km inicio', 'hor inicio');
-        const kHorFim   = findKey('hor km final', 'horkmfinal', 'horfim', 'horimetro final', 'km final', 'hor final');
-        const kHorTot   = findKey('hor km total', 'horkmtotal', 'hortotal', 'km total', 'horimetro total');
+        const kHorIni   = findKey('hor km inicio', 'horkmini', 'horim', 'horimetro inicio', 'km inicio', 'hor inicio', 'km inicial', 'kminicial');
+        const kHorFim   = findKey('hor km final', 'horkmfinal', 'horfim', 'horimetro final', 'km final', 'hor final', 'km final', 'kmfinal');
+        const kHorTot   = findKey('hor km total', 'horkmtotal', 'hortotal', 'km total', 'horimetro total', 'km total', 'kmtotal');
 
         const normalized = rows
           .map((row) => {
             const rawDate = get(row, kData);
+            let ini = fmtTime(get(row, kInicio));
+            let fim = fmtTime(get(row, kFim));
+            let inter = fmtTime(get(row, kIntervalo));
+            let th = fmtTime(get(row, kTotalH));
+
+            if (!th && ini && fim) {
+              const timeToMins = (t) => {
+                if (!t) return 0;
+                const [h, m] = t.split(':').map(Number);
+                return (h || 0) * 60 + (m || 0);
+              };
+              let diff = timeToMins(fim) - timeToMins(ini);
+              if (diff < 0) diff += 24 * 60;
+              diff -= timeToMins(inter);
+              if (diff > 0) {
+                const h = Math.floor(diff / 60);
+                const m = diff % 60;
+                th = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+              }
+            }
+
             return {
               data:              fmtDate(rawDate),
               iso_date:          toIsoDate(rawDate),
@@ -104,14 +143,14 @@ export const parseExcel = (file) =>
               config_equipamento:str(get(row, kConfig)),
               operador:          str(get(row, kOper)),
               parte_diaria:      str(get(row, kParte)),
-              inicio_operacao:   str(get(row, kInicio)),
-              intervalo:         str(get(row, kIntervalo)),
-              fim_operacao:      str(get(row, kFim)),
-              total_horas:       num(get(row, kTotalH)),
+              inicio_operacao:   ini,
+              intervalo:         inter,
+              fim_operacao:      fim,
+              total_horas:       th,
               houve_quebra:      str(get(row, kQuebra)),
               motivo:            str(get(row, kMotivo)),
               item_motivo:       str(get(row, kItem)),
-              horas_paradas:     num(get(row, kHoraPar)),
+              horas_paradas:     fmtTime(get(row, kHoraPar)),
               hor_km_inicio:     num(get(row, kHorIni)),
               hor_km_final:      num(get(row, kHorFim)),
               hor_km_total:      num(get(row, kHorTot)),
