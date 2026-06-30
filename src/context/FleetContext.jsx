@@ -24,7 +24,7 @@ export const FleetProvider = ({ children }) => {
   // Carrega dados do Supabase ao iniciar
   const loadFromDB = useCallback(async () => {
     setLoading(true);
-    let allData = [];
+    const allData = [];
     let from = 0;
     const step = 1000;
     let hasMore = true;
@@ -42,7 +42,7 @@ export const FleetProvider = ({ children }) => {
       }
       
       if (data && data.length > 0) {
-        allData = [...allData, ...data];
+        allData.push(...data); // push direto evita cópias O(n²)
         from += step;
       }
       

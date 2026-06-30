@@ -29,7 +29,7 @@ export const CadastrosProvider = ({ children }) => {
   }, []);
 
   const loadProgramacoes= useCallback(async () => {
-    let allData = [];
+    const allData = [];
     let from = 0;
     const step = 1000;
     let hasMore = true;
@@ -46,7 +46,7 @@ export const CadastrosProvider = ({ children }) => {
         break;
       }
       if (data && data.length > 0) {
-        allData = [...allData, ...data];
+        allData.push(...data); // push direto evita cópias O(n²)
         from += step;
       }
       if (!data || data.length < step) {
@@ -72,13 +72,16 @@ export const CadastrosProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    loadClientes();
-    loadOperadores();
-    loadEquipamentos();
-    loadProgramacoes();
-    loadStatus();
-    loadMotivos();
-    loadItensMotivo();
+    // Paraleliza todas as cargas independentes para reduzir o tempo total
+    Promise.all([
+      loadClientes(),
+      loadOperadores(),
+      loadEquipamentos(),
+      loadProgramacoes(),
+      loadStatus(),
+      loadMotivos(),
+      loadItensMotivo(),
+    ]);
   }, [loadClientes, loadOperadores, loadEquipamentos, loadProgramacoes, loadStatus, loadMotivos, loadItensMotivo]);
 
   // CLIENTES

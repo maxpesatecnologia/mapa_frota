@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Plus, Pencil, Trash2, X, Check, Upload, FileText, FileImage, File, Download, MessageSquare, Paperclip, Loader } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
 
@@ -181,11 +181,23 @@ const Programacao = () => {
     ? itensMotivoList.filter(i => i.motivo_id === selectedMotivoObj.id)
     : [];
 
-  const filtered = programacoes.filter(p =>
-    (p.placa || '').toLowerCase().includes(search.toLowerCase()) ||
-    (p.cliente || '').toLowerCase().includes(search.toLowerCase()) ||
-    (p.operador || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const [displayCount, setDisplayCount] = useState(100);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return programacoes.filter(p =>
+      (p.placa || '').toLowerCase().includes(q) ||
+      (p.cliente || '').toLowerCase().includes(q) ||
+      (p.operador || '').toLowerCase().includes(q)
+    );
+  }, [programacoes, search]);
+
+  const displayed = useMemo(() => filtered.slice(0, displayCount), [filtered, displayCount]);
+
+  // Reseta a paginação ao buscar
+  useEffect(() => {
+    setDisplayCount(100);
+  }, [search]);
 
   // ── ESTILOS REUTILIZÁVEIS ───────────────────────────────────────────
   const inputStyle = {
@@ -242,14 +254,14 @@ const Programacao = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {displayed.length === 0 ? (
                 <tr><td colSpan={25} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>
                   {programacoes.length === 0 ? 'Nenhuma programação cadastrada.' : 'Nenhum resultado.'}
                 </td></tr>
-              ) : filtered.map((p, i) => {
+              ) : displayed.map((p, i) => {
                 const qtdAnexos = (anexosByProg[p.id] || []).length;
                 return (
-                  <tr key={p.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid #f1f5f9' : 'none' }}
+                  <tr key={p.id} style={{ borderBottom: i < displayed.length - 1 ? '1px solid #f1f5f9' : 'none' }}
                     onMouseEnter={ev => ev.currentTarget.style.background = '#fafbfd'}
                     onMouseLeave={ev => ev.currentTarget.style.background = 'white'}
                   >
@@ -303,6 +315,21 @@ const Programacao = () => {
             </tbody>
           </table>
         </div>
+        {/* Botão Carregar Mais */}
+        {filtered.length > displayed.length && (
+          <div style={{ padding: '1rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+            <button 
+              onClick={() => setDisplayCount(c => c + 100)}
+              style={{
+                padding: '0.55rem 1.5rem', borderRadius: 8, border: '1px solid #cbd5e1',
+                background: 'white', color: '#475569', fontSize: '0.85rem', fontWeight: 600,
+                cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              Mostrar mais ({displayed.length} de {filtered.length})
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Modal Formulário ── */}

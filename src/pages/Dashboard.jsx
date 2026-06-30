@@ -4,10 +4,9 @@ import {
   PieChart, Pie, Cell, Legend,
   LineChart, Line, CartesianGrid,
 } from 'recharts';
-import { useFleet } from '../context/FleetContext';
 import { useCadastros } from '../context/CadastrosContext';
 import { getStatus, isWorking } from '../utils/statusConfig';
-import { Truck, Wrench, TrendingUp, AlertTriangle, Clock, Upload, ArrowRight } from 'lucide-react';
+import { Truck, Wrench, TrendingUp, AlertTriangle, Clock, Upload, ArrowRight, Users } from 'lucide-react';
 
 const COLORS = ['#E30613', '#16a34a', '#2563eb', '#d97706', '#7c3aed', '#0891b2'];
 
@@ -45,9 +44,44 @@ const Card = ({ title, children, style }) => (
   </div>
 );
 
+const timeToHours = (t) => {
+  if (!t) return 0;
+  if (typeof t === 'number') return t;
+  const parts = String(t).split(':');
+  const h = Number(parts[0]) || 0;
+  const m = Number(parts[1]) || 0;
+  return h + (m / 60);
+};
+
 const Dashboard = () => {
-  const { filtered, rawData } = useFleet();
-  const { equipamentos } = useCadastros();
+  const { programacoes: filtered, equipamentos } = useCadastros();
+
+  const totalClientes = useMemo(() => {
+    const clients = new Set();
+    filtered.forEach(r => {
+      const c = String(r.cliente || '').trim();
+      if (c !== '') clients.add(c);
+    });
+    return clients.size;
+  }, [filtered]);
+
+  const ocupacaoEquipData = useMemo(() => {
+    const map = {};
+    filtered.forEach(r => {
+      const k = r.placa || r.frota;
+      if (!k) return;
+      if (!map[k]) map[k] = { placa: k, totalDias: 0, diasOperando: 0 };
+      map[k].totalDias++;
+      if (isWorking(r.status)) map[k].diasOperando++;
+    });
+    return Object.values(map)
+      .map(e => ({
+        placa: e.placa,
+        taxa: e.totalDias > 0 ? Math.round((e.diasOperando / e.totalDias) * 100) : 0
+      }))
+      .sort((a, b) => b.taxa - a.taxa)
+      .slice(0, 15);
+  }, [filtered]);
 
   // KPIs básicos — status mais recente por equipamento
   const { byFrota, statusCount, totalEquip, operando, taxa } = useMemo(() => {
@@ -55,7 +89,9 @@ const Dashboard = () => {
     filtered.forEach(r => {
       const k = r.placa || r.frota;
       const prev = map.get(k);
-      if (!prev || r.iso_date >= prev.iso_date) map.set(k, r);
+      const rDate = r.data || r.iso_date;
+      const prevDate = prev ? (prev.data || prev.iso_date) : null;
+      if (!prev || rDate >= prevDate) map.set(k, r);
     });
     const uniq = Array.from(map.values());
     const counts = {};
@@ -77,8 +113,8 @@ const Dashboard = () => {
       const k = r.placa || r.frota;
       if (!k) return;
       if (!map[k]) map[k] = { placa: k, totalH: 0, paradasH: 0, registros: 0 };
-      map[k].totalH  += Number(r.total_horas)  || 0;
-      map[k].paradasH += Number(r.horas_paradas) || 0;
+      map[k].totalH   += timeToHours(r.total_horas);
+      map[k].paradasH += timeToHours(r.horas_paradas);
       map[k].registros++;
     });
     return Object.values(map)
@@ -114,12 +150,13 @@ const Dashboard = () => {
   const quebraData = useMemo(() => {
     const map = {};
     filtered.forEach(r => {
-      if (!r.iso_date) return;
-      const mes = r.iso_date.slice(0, 7);
+      const date = r.data || r.iso_date;
+      if (!date) return;
+      const mes = String(date).slice(0, 7);
       if (!map[mes]) map[mes] = { mes, quebras: 0, horasParadas: 0 };
-      if (r.houve_quebra && r.houve_quebra.toLowerCase() !== 'não' && r.houve_quebra !== '') {
+      if (r.houve_quebra === true || String(r.houve_quebra).toLowerCase() === 'sim') {
         map[mes].quebras++;
-        map[mes].horasParadas += Number(r.horas_paradas) || 0;
+        map[mes].horasParadas += timeToHours(r.horas_paradas);
       }
     });
     return Object.values(map).sort((a, b) => a.mes.localeCompare(b.mes)).slice(-12);
@@ -131,7 +168,7 @@ const Dashboard = () => {
     filtered.forEach(r => {
       if (!r.cliente) return;
       if (!map[r.cliente]) map[r.cliente] = { cliente: r.cliente, horasParadas: 0, registros: 0 };
-      map[r.cliente].horasParadas += Number(r.horas_paradas) || 0;
+      map[r.cliente].horasParadas += timeToHours(r.horas_paradas);
       map[r.cliente].registros++;
     });
     return Object.values(map)
@@ -140,16 +177,22 @@ const Dashboard = () => {
       .slice(0, 8);
   }, [filtered]);
 
-  // Status pie data
-  const pieData = useMemo(() =>
-    Object.entries(statusCount).map(([status, count]) => ({
-      name: getStatus(status).label,
-      value: count,
-    })),
-  [statusCount]);
+  // Status stacked bar data
+  const stackedStatusData = useMemo(() => {
+    const dataObj = { name: 'Equipamentos' };
+    Object.entries(statusCount).forEach(([status, count]) => {
+      dataObj[getStatus(status).label] = count;
+    });
+    return [dataObj];
+  }, [statusCount]);
 
-  const totalQuebras  = filtered.filter(r => r.houve_quebra && r.houve_quebra.toLowerCase() !== 'não' && r.houve_quebra !== '').length;
-  const totalParadas  = filtered.reduce((s, r) => s + (Number(r.horas_paradas) || 0), 0);
+  const statusKeys = useMemo(() => {
+    if (stackedStatusData.length === 0) return [];
+    return Object.keys(stackedStatusData[0]).filter(k => k !== 'name');
+  }, [stackedStatusData]);
+
+  const totalQuebras  = filtered.filter(r => r.houve_quebra === true || String(r.houve_quebra).toLowerCase() === 'sim').length;
+  const totalParadas  = filtered.reduce((s, r) => s + timeToHours(r.horas_paradas), 0);
 
   const familiaCount = useMemo(() => {
     const map = {};
@@ -160,7 +203,7 @@ const Dashboard = () => {
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [equipamentos]);
 
-  if (rawData.length === 0) {
+  if (filtered.length === 0) {
     return (
       <div style={{ padding: '1.5rem', overflowY: 'auto', height: '100%' }}>
         <h1 style={{ fontSize: '1.3rem', color: '#1e293b', marginBottom: '0.25rem' }}>Dashboard</h1>
@@ -211,15 +254,7 @@ const Dashboard = () => {
           </>
         )}
 
-        {/* CTA importar */}
-        <div style={{ background: '#fff7f7', border: '1px dashed #fca5a5', borderRadius: 12, padding: '1.25rem 1.5rem', maxWidth: 480, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Upload size={28} color="#E30613" style={{ flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b', marginBottom: 4 }}>Importe dados operacionais</div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Acesse <strong>Importar</strong> no menu lateral para carregar sua planilha Excel e ativar o dashboard completo.</div>
-          </div>
-          <ArrowRight size={18} color="#E30613" style={{ flexShrink: 0 }} />
-        </div>
+
       </div>
     );
   }
@@ -231,6 +266,7 @@ const Dashboard = () => {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard icon={<Truck size={20} color="#64748b" />}      label="Total de Equipamentos" value={totalEquip} color="#64748b" />
+        <KpiCard icon={<Users size={20} color="#0891b2" />}      label="Clientes Atendidos"     value={totalClientes} color="#0891b2" />
         <KpiCard icon={<TrendingUp size={20} color="#16a34a" />} label="Operando"               value={operando}   color="#16a34a" sub={`${taxa}% de ocupação`} />
         <KpiCard icon={<AlertTriangle size={20} color="#E30613"/>}label="Quebras (período)"     value={totalQuebras} color="#E30613" />
         <KpiCard icon={<Clock size={20} color="#d97706" />}      label="Horas Paradas (total)"  value={`${totalParadas.toFixed(0)}h`} color="#d97706" />
@@ -243,14 +279,17 @@ const Dashboard = () => {
       {/* Row 1: Status pie + Ocupação por família */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '1rem', marginBottom: '1rem' }}>
         <Card title="Equipamentos por Status">
-          {pieData.length > 0 ? (
+          {statusKeys.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
+              <BarChart data={stackedStatusData} layout="vertical" margin={{ left: 0, right: 10, top: 40, bottom: 40 }}>
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" hide />
                 <Tooltip />
-              </PieChart>
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: 20 }} />
+                {statusKeys.map((key, i) => (
+                  <Bar key={key} dataKey={key} stackId="a" fill={COLORS[i % COLORS.length]} barSize={60} />
+                ))}
+              </BarChart>
             </ResponsiveContainer>
           ) : <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Sem dados</p>}
         </Card>
@@ -304,19 +343,34 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Row 3: Horas paradas por cliente */}
-      <Card title="Horas Paradas por Cliente">
-        {clienteParadasData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={clienteParadasData} margin={{ left: -10 }}>
-              <XAxis dataKey="cliente" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 11 }} unit="h" />
-              <Tooltip formatter={(v) => `${v}h`} />
-              <Bar dataKey="horasParadas" fill="#d97706" radius={[4, 4, 0, 0]} name="Horas Paradas" />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Sem horas paradas registradas</p>}
-      </Card>
+      {/* Row 3: Horas paradas por cliente + Ocupação por Equipamento */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+        <Card title="Horas Paradas por Cliente">
+          {clienteParadasData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={clienteParadasData} margin={{ left: -10 }}>
+                <XAxis dataKey="cliente" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 11 }} unit="h" />
+                <Tooltip formatter={(v) => `${v}h`} />
+                <Bar dataKey="horasParadas" fill="#d97706" radius={[4, 4, 0, 0]} name="Horas Paradas" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Sem horas paradas registradas</p>}
+        </Card>
+
+        <Card title="Taxa de Ocupação por Equipamento (%)">
+          {ocupacaoEquipData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={ocupacaoEquipData} margin={{ left: -10 }}>
+                <XAxis dataKey="placa" tick={{ fontSize: 10 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
+                <Tooltip formatter={(v) => `${v}%`} />
+                <Bar dataKey="taxa" fill="#2563eb" radius={[4, 4, 0, 0]} name="Ocupação" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Sem dados</p>}
+        </Card>
+      </div>
     </div>
   );
 };
