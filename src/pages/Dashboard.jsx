@@ -5,7 +5,7 @@ import {
   LineChart, Line, CartesianGrid, LabelList
 } from 'recharts';
 import { useCadastros } from '../context/CadastrosContext';
-import { getStatus, isWorking } from '../utils/statusConfig';
+import { getStatus, getStatusGroup } from '../utils/statusConfig';
 import { Truck, Wrench, TrendingUp, AlertTriangle, Clock, Upload, ArrowRight, Users } from 'lucide-react';
 
 const COLORS = ['#E30613', '#16a34a', '#2563eb', '#d97706', '#7c3aed', '#0891b2'];
@@ -31,6 +31,7 @@ const KpiCard = ({ icon, label, value, sub, color = '#E30613' }) => (
     </div>
   </div>
 );
+
 
 const Card = ({ title, children, style }) => (
   <div style={{
@@ -86,7 +87,7 @@ const Dashboard = () => {
     const clients = new Set();
     filtered.forEach(r => {
       const c = String(r.cliente || '').trim();
-      if (c !== '') clients.add(c);
+      if (c && getStatusGroup(r.status) !== null) clients.add(c);
     });
     return clients.size;
   }, [filtered]);
@@ -103,13 +104,10 @@ const Dashboard = () => {
       const k = r.placa || r.frota;
       if (!k) return;
       if (!map[k]) map[k] = { placa: k, diasTrabalhados: new Set() };
-      
+
       const date = r.data || r.iso_date;
-      if (date) {
-        const st = String(r.status || '').trim().toUpperCase();
-        if (['T', 'TRABALHANDO', 'M', 'MOBILIZACAO', 'MOBILIZAÇÃO', 'DM', 'DESMOBILIZACAO', 'DESMOBILIZAÇÃO', 'RR', 'RESERVA REMUNERADA'].includes(st)) {
-          map[k].diasTrabalhados.add(date);
-        }
+      if (date && getStatusGroup(r.status) !== null) {
+        map[k].diasTrabalhados.add(date);
       }
     });
     return Object.values(map)
@@ -140,10 +138,7 @@ const Dashboard = () => {
     const uniq = Array.from(map.values());
     const counts = {};
     uniq.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
-    const op = uniq.filter(r => {
-      const st = String(r.status || '').trim().toUpperCase();
-      return ['T', 'TRABALHANDO', 'M', 'MOBILIZACAO', 'MOBILIZAÇÃO', 'DM', 'DESMOBILIZACAO', 'DESMOBILIZAÇÃO', 'RR', 'RESERVA REMUNERADA'].includes(st);
-    }).length;
+    const op = uniq.filter(r => getStatusGroup(r.status) !== null).length;
     return {
       byFrota: uniq,
       statusCount: counts,
@@ -184,40 +179,27 @@ const Dashboard = () => {
   }, [filtered]);
 
   const familiaData = useMemo(() => {
+    // Agrupa as taxas individuais de cada equipamento por família e tira a média
     const map = {};
-    // Inicializar com todas as famílias do cadastro
     equipamentos.forEach(e => {
       const familia = e.familia || 'Sem família';
-      if (!map[familia]) map[familia] = { diasTrabalhados: new Set(), totalEquipamentos: 0 };
-      map[familia].totalEquipamentos++;
+      if (!map[familia]) map[familia] = [];
     });
-
-    filtered.forEach(r => {
-      const familia = r.familia || equipamentos.find(e => e.placa === r.placa || e.frota === r.frota)?.familia || 'Sem família';
-      if (!map[familia]) map[familia] = { diasTrabalhados: new Set(), totalEquipamentos: 0 };
-      
-      const date = r.data || r.iso_date;
-      const k = r.placa || r.frota;
-      
-      if (date && k) {
-        const uniqueKey = `${k}_${date}`;
-        const st = String(r.status || '').trim().toUpperCase();
-        if (['T', 'TRABALHANDO', 'M', 'MOBILIZACAO', 'MOBILIZAÇÃO', 'DM', 'DESMOBILIZACAO', 'DESMOBILIZAÇÃO', 'RR', 'RESERVA REMUNERADA'].includes(st)) {
-          map[familia].diasTrabalhados.add(uniqueKey);
-        }
-      }
+    ocupacaoEquipData.forEach(equip => {
+      const eq = equipamentos.find(e => (e.placa || e.frota) === equip.placa);
+      const familia = eq?.familia;
+      if (!familia) return;
+      if (!map[familia]) map[familia] = [];
+      map[familia].push(equip.taxa);
     });
-    return Object.entries(map).map(([familia, d]) => {
-      const dTrab = d.diasTrabalhados.size;
-      const dUteis = d.totalEquipamentos * diasUteisPeriodo;
-      const taxa = dUteis > 0 ? Number(((dTrab / dUteis) * 100).toFixed(1)) : 0;
-      return {
-        familia,
-        taxa: taxa,
-        label: `${taxa}%`
-      };
-    }).sort((a, b) => b.taxa - a.taxa);
-  }, [filtered, equipamentos, diasUteisPeriodo]);
+    return Object.entries(map)
+      .filter(([, taxas]) => taxas.length > 0)
+      .map(([familia, taxas]) => {
+        const media = Number((taxas.reduce((s, t) => s + t, 0) / taxas.length).toFixed(1));
+        return { familia, taxa: media, label: `${media}%` };
+      })
+      .sort((a, b) => b.taxa - a.taxa);
+  }, [ocupacaoEquipData, equipamentos]);
 
   // Histórico de quebras por data
   const quebraData = useMemo(() => {
@@ -269,11 +251,7 @@ const Dashboard = () => {
   const totalQuebras  = filtered.filter(r => r.houve_quebra === true || String(r.houve_quebra).toLowerCase() === 'sim').length;
   
   const totalHorasOperacionais = filtered.reduce((s, r) => {
-    const st = String(r.status || '').trim().toUpperCase();
-    if (['T', 'TRABALHANDO', 'M', 'MOBILIZACAO', 'MOBILIZAÇÃO', 'DM', 'DESMOBILIZACAO', 'DESMOBILIZAÇÃO', 'RR', 'RESERVA REMUNERADA'].includes(st)) {
-      return s + timeToHours(r.total_horas);
-    }
-    return s;
+    return getStatusGroup(r.status) !== null ? s + timeToHours(r.total_horas) : s;
   }, 0);
 
   const familiaCount = useMemo(() => {
@@ -355,7 +333,7 @@ const Dashboard = () => {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard icon={<Truck size={20} color="#64748b" />}      label="Total de Equipamentos" value={totalEquip} color="#64748b" />
-        <KpiCard icon={<Users size={20} color="#0891b2" />}      label="Clientes Atendidos"     value={totalClientes} color="#0891b2" />
+        <KpiCard icon={<Users size={20} color="#0891b2" />} label="Clientes Atendidos" value={totalClientes} color="#0891b2" />
         <KpiCard icon={<TrendingUp size={20} color="#16a34a" />} label="Operando"               value={operando}   color="#16a34a" sub={`${globalOcupacao}% de ocupação global`} />
         <KpiCard icon={<AlertTriangle size={20} color="#E30613"/>}label="Quebras (período)"     value={totalQuebras} color="#E30613" />
         <KpiCard icon={<Clock size={20} color="#2563eb" />}      label="Horas (Operacionais)"   value={`${totalHorasOperacionais.toFixed(0)}h`} color="#2563eb" />
