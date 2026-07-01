@@ -36,18 +36,6 @@ const StatusBadge = ({ raw }) => {
   );
 };
 
-const KpiPill = ({ label, value, color }) => (
-  <div style={{
-    background: 'white', borderRadius: 10,
-    padding: '0.65rem 1.1rem',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-    borderLeft: `3px solid ${color}`,
-    display: 'flex', flexDirection: 'column', gap: 2, minWidth: 110,
-  }}>
-    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e293b', lineHeight: 1 }}>{value}</span>
-    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>{label}</span>
-  </div>
-);
 
 /* ─── componente principal ─────────────────────────────────────────────────── */
 const Operacional = () => {
@@ -116,17 +104,7 @@ const Operacional = () => {
   const [displayCount, setDisplayCount] = useState(15);
   const displayedGrouped = useMemo(() => grouped.slice(0, displayCount), [grouped, displayCount]);
 
-  /* KPIs */
-  const kpis = useMemo(() => {
-    const totalReg = filtered.length;
-    const uniqueEquip = new Set(filtered.map(r => r.placa || r.frota).filter(Boolean)).size;
-    const uniqueDates = new Set(filtered.map(r => String(r.data || '').slice(0, 10))).size;
-    const trabalhando = filtered.filter(r => String(r.status || '').toUpperCase() === 'T').length;
-    const quebras     = filtered.filter(r => r.houve_quebra === true).length;
-    return { totalReg, uniqueEquip, uniqueDates, trabalhando, quebras };
-  }, [filtered]);
-
-  const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterDataInicio || filterDataFim;
+const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterDataInicio || filterDataFim;
 
   const clearFilters = () => {
     setSearch(''); setFilterStatus('all');
@@ -181,16 +159,7 @@ const Operacional = () => {
           </button>
         </div>
 
-        {/* KPIs */}
-        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-          <KpiPill label="Registros"       value={kpis.totalReg}    color="#64748b" />
-          <KpiPill label="Equipamentos"    value={kpis.uniqueEquip} color="#7c3aed" />
-          <KpiPill label="Dias"            value={kpis.uniqueDates} color="#0891b2" />
-          <KpiPill label="Dias trabalhando"value={kpis.trabalhando} color="#16a34a" />
-          {kpis.quebras > 0 && <KpiPill label="Ocorrências de quebra" value={kpis.quebras} color="#E30613" />}
-        </div>
-
-        {/* Filtros */}
+{/* Filtros */}
         {showFilters && (
           <div style={{
             background: 'white', borderRadius: 10, padding: '0.85rem 1rem',

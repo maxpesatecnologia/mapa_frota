@@ -394,11 +394,51 @@ const Programacao = () => {
                   <label style={labelStyle}>Configuração</label>
                   <input type="text" value={form.config_equipamento} onChange={e => setForm(f => ({ ...f, config_equipamento: e.target.value }))} style={inputStyle} />
                 </div>
-                <div>
-                  <label style={labelStyle}>Operador</label>
-                  <select value={form.operador} onChange={e => setForm(f => ({ ...f, operador: e.target.value }))} style={inputStyle}>
-                    <option value="">Selecione...</option>
-                    {operadores.map(op => <option key={op.id} value={op.nome}>{op.nome}</option>)}
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={labelStyle}>Operador(es)</label>
+                  {/* Chips dos operadores selecionados */}
+                  {form.operador && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                      {form.operador.split(',').map(o => o.trim()).filter(Boolean).map(op => (
+                        <span key={op} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: '#eff6ff', color: '#2563eb',
+                          borderRadius: 99, padding: '3px 10px',
+                          fontSize: '0.78rem', fontWeight: 600,
+                        }}>
+                          {op}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const arr = form.operador.split(',').map(o => o.trim()).filter(o => o && o !== op);
+                              setForm(f => ({ ...f, operador: arr.join(', ') }));
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb', padding: 0, lineHeight: 1, display: 'flex' }}
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {/* Dropdown para adicionar operador */}
+                  <select
+                    value=""
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (!val) return;
+                      const arr = form.operador ? form.operador.split(',').map(o => o.trim()).filter(Boolean) : [];
+                      if (!arr.includes(val)) {
+                        setForm(f => ({ ...f, operador: [...arr, val].join(', ') }));
+                      }
+                    }}
+                    style={inputStyle}
+                  >
+                    <option value="">Adicionar operador...</option>
+                    {operadores
+                      .filter(op => !(form.operador || '').split(',').map(o => o.trim()).includes(op.nome))
+                      .map(op => <option key={op.id} value={op.nome}>{op.nome}</option>)
+                    }
                   </select>
                 </div>
                 <div>

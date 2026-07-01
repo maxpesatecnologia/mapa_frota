@@ -1,14 +1,11 @@
 import { useMemo, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-  LineChart, Line, CartesianGrid, LabelList
+  Cell, LabelList
 } from 'recharts';
 import { useCadastros } from '../context/CadastrosContext';
 import { getStatus, getStatusGroup } from '../utils/statusConfig';
-import { Truck, Wrench, TrendingUp, AlertTriangle, Clock, Upload, ArrowRight, Users } from 'lucide-react';
-
-const COLORS = ['#E30613', '#16a34a', '#2563eb', '#d97706', '#7c3aed', '#0891b2'];
+import { Truck, Wrench, TrendingUp, AlertTriangle, Clock, Users } from 'lucide-react';
 
 const KpiCard = ({ icon, label, value, sub, color = '#E30613' }) => (
   <div style={{
@@ -126,7 +123,7 @@ const Dashboard = () => {
   }, [filtered, equipamentos, diasUteisPeriodo]);
 
   // KPIs básicos — status mais recente por equipamento
-  const { byFrota, statusCount, totalEquip, operando, taxa } = useMemo(() => {
+  const { totalEquip, operando } = useMemo(() => {
     const map = new Map();
     filtered.forEach(r => {
       const k = r.placa || r.frota;
@@ -201,21 +198,6 @@ const Dashboard = () => {
       .sort((a, b) => b.taxa - a.taxa);
   }, [ocupacaoEquipData, equipamentos]);
 
-  // Histórico de quebras por data
-  const quebraData = useMemo(() => {
-    const map = {};
-    filtered.forEach(r => {
-      const date = r.data || r.iso_date;
-      if (!date) return;
-      const mes = String(date).slice(0, 7);
-      if (!map[mes]) map[mes] = { mes, quebras: 0, horasParadas: 0 };
-      if (r.houve_quebra === true || String(r.houve_quebra).toLowerCase() === 'sim') {
-        map[mes].quebras++;
-        map[mes].horasParadas += timeToHours(r.horas_paradas);
-      }
-    });
-    return Object.values(map).sort((a, b) => a.mes.localeCompare(b.mes)).slice(-12);
-  }, [filtered]);
 
   // Horas paradas por cliente
   const clienteParadasData = useMemo(() => {
@@ -381,42 +363,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Row 2: OEE + Quebras */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-        <Card title="OEE por Equipamento (%)">
-          {oeeData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={230}>
-              <BarChart data={oeeData} layout="vertical" margin={{ left: 10 }}>
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
-                <YAxis type="category" dataKey="placa" tick={{ fontSize: 10 }} width={90} />
-                <Tooltip formatter={(v) => `${v}%`} />
-                <Bar dataKey="oee" radius={[0, 4, 4, 0]}
-                  fill="#7c3aed"
-                  label={{ position: 'right', fontSize: 10, formatter: (v) => `${v}%` }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Importe dados com horas para calcular OEE</p>}
-        </Card>
-
-        <Card title="Histórico de Quebras por Mês">
-          {quebraData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={230}>
-              <LineChart data={quebraData} margin={{ left: -10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="quebras" stroke="#E30613" strokeWidth={2} dot={{ r: 4 }} name="Quebras" />
-                <Line type="monotone" dataKey="horasParadas" stroke="#d97706" strokeWidth={2} dot={{ r: 4 }} name="Horas Paradas" />
-                <Legend />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>Sem quebras registradas</p>}
-        </Card>
-      </div>
-
-      {/* Row 3: Horas paradas por cliente + Ocupação por Equipamento */}
+{/* Row 3: Horas paradas por cliente + Ocupação por Equipamento */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
         <Card title="Horas Paradas por Cliente">
           {clienteParadasData.length > 0 ? (
