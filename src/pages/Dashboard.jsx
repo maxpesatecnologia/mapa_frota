@@ -21,8 +21,8 @@ const KpiCard = ({ icon, label, value, sub, color = '#E30613' }) => (
     }}>
       {icon}
     </div>
-    <div>
-      <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e293b', lineHeight: 1 }}>{value}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: String(value).length > 6 ? '1.1rem' : '1.6rem', fontWeight: 800, color: '#1e293b', lineHeight: 1, whiteSpace: 'nowrap' }}>{value}</div>
       <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>{label}</div>
       {sub && <div style={{ fontSize: '0.7rem', color: color, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
     </div>
@@ -71,15 +71,6 @@ const Dashboard = () => {
     });
   }, [programacoes, dataInicio, dataFim]);
 
-  const diasUteisPeriodo = useMemo(() => {
-    const dates = new Set();
-    filtered.forEach(r => {
-      const d = r.data || r.iso_date;
-      if (d) dates.add(d);
-    });
-    return dates.size;
-  }, [filtered]);
-
   const totalClientes = useMemo(() => {
     const clients = new Set();
     filtered.forEach(r => {
@@ -91,39 +82,42 @@ const Dashboard = () => {
 
   const ocupacaoEquipData = useMemo(() => {
     const map = {};
-    // Inicializar com todos os equipamentos do cadastro
     equipamentos.forEach(e => {
       const k = e.placa || e.frota;
-      if (k) map[k] = { placa: k, diasTrabalhados: new Set() };
+      if (k) map[k] = { placa: k, diasTrabalhados: new Set(), diasComRegistro: new Set() };
     });
 
     filtered.forEach(r => {
       const k = r.placa || r.frota;
       if (!k) return;
-      if (!map[k]) map[k] = { placa: k, diasTrabalhados: new Set() };
+      if (!map[k]) map[k] = { placa: k, diasTrabalhados: new Set(), diasComRegistro: new Set() };
 
       const date = r.data || r.iso_date;
-      if (date && getStatusGroup(r.status) !== null) {
-        map[k].diasTrabalhados.add(date);
+      if (date) {
+        map[k].diasComRegistro.add(date);
+        if (getStatusGroup(r.status) !== null) {
+          map[k].diasTrabalhados.add(date);
+        }
       }
     });
     return Object.values(map)
       .map(e => {
         const dTrab = e.diasTrabalhados.size;
-        const dUteis = diasUteisPeriodo;
+        const dUteis = e.diasComRegistro.size;
         const taxa = dUteis > 0 ? Number(((dTrab / dUteis) * 100).toFixed(1)) : 0;
         return {
           placa: e.placa,
           diasTrabalhados: dTrab,
-          taxa: taxa,
+          diasComRegistro: dUteis,
+          taxa,
           label: `${taxa}%`
         };
       })
       .sort((a, b) => b.taxa - a.taxa);
-  }, [filtered, equipamentos, diasUteisPeriodo]);
+  }, [filtered, equipamentos]);
 
   // KPIs básicos — status mais recente por equipamento
-  const { totalEquip, operando } = useMemo(() => {
+  const { totalEquip } = useMemo(() => {
     const map = new Map();
     filtered.forEach(r => {
       const k = r.placa || r.frota;
@@ -146,34 +140,11 @@ const Dashboard = () => {
   }, [filtered]);
 
   const globalOcupacao = useMemo(() => {
-    if (diasUteisPeriodo === 0 || equipamentos.length === 0) return 0;
-    const totalTrab = ocupacaoEquipData.reduce((acc, curr) => acc + (curr.diasTrabalhados || 0), 0);
-    const totalUteis = equipamentos.length * diasUteisPeriodo;
-    return Math.round((totalTrab / totalUteis) * 100);
-  }, [ocupacaoEquipData, diasUteisPeriodo, equipamentos.length]);
-
-  // OEE por equipamento (top 10)
-  const oeeData = useMemo(() => {
-    const map = {};
-    filtered.forEach(r => {
-      const k = r.placa || r.frota;
-      if (!k) return;
-      if (!map[k]) map[k] = { placa: k, totalH: 0, paradasH: 0, registros: 0 };
-      map[k].totalH   += timeToHours(r.total_horas);
-      map[k].paradasH += timeToHours(r.horas_paradas);
-      map[k].registros++;
-    });
-    return Object.values(map)
-      .filter(e => e.totalH > 0)
-      .map(e => ({
-        placa: e.placa,
-        oee: Math.round(((e.totalH - e.paradasH) / e.totalH) * 100),
-        horas: e.totalH,
-        paradas: e.paradasH,
-      }))
-      .sort((a, b) => b.oee - a.oee)
-      .slice(0, 10);
-  }, [filtered]);
+    const ativos = ocupacaoEquipData.filter(e => e.diasTrabalhados > 0);
+    if (ativos.length === 0) return 0;
+    const soma = ativos.reduce((s, e) => s + e.taxa, 0);
+    return Math.round(soma / ativos.length);
+  }, [ocupacaoEquipData]);
 
   const familiaData = useMemo(() => {
     // Agrupa as taxas individuais de cada equipamento por família e tira a média
@@ -316,13 +287,9 @@ const Dashboard = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard icon={<Truck size={20} color="#64748b" />}      label="Total de Equipamentos" value={totalEquip} color="#64748b" />
         <KpiCard icon={<Users size={20} color="#0891b2" />} label="Clientes Atendidos" value={totalClientes} color="#0891b2" />
-        <KpiCard icon={<TrendingUp size={20} color="#16a34a" />} label="Operando"               value={operando}   color="#16a34a" sub={`${globalOcupacao}% de ocupação global`} />
+        <KpiCard icon={<TrendingUp size={20} color="#16a34a" />} label="Taxa de Ocupação"        value={`${globalOcupacao}%`} color="#16a34a" />
         <KpiCard icon={<AlertTriangle size={20} color="#E30613"/>}label="Quebras (período)"     value={totalQuebras} color="#E30613" />
-        <KpiCard icon={<Clock size={20} color="#2563eb" />}      label="Horas (Operacionais)"   value={`${totalHorasOperacionais.toFixed(0)}h`} color="#2563eb" />
-        <KpiCard icon={<Wrench size={20} color="#7c3aed" />}     label="OEE Médio"
-          value={oeeData.length > 0 ? `${Math.round(oeeData.reduce((s,e)=>s+e.oee,0)/oeeData.length)}%` : '—'}
-          color="#7c3aed"
-        />
+        <KpiCard icon={<Clock size={20} color="#2563eb" />}      label="Horas (Operacionais)"   value={formatTime(totalHorasOperacionais)} color="#2563eb" />
       </div>
 
       {/* Row 1: Status pie + Ocupação por família */}

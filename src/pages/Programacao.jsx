@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Plus, Pencil, Trash2, X, Check, Upload, FileText, FileImage, File, Download, MessageSquare, Paperclip, Loader } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, Upload, FileText, FileImage, File, Download, MessageSquare, Paperclip, Loader, Filter, Search } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
 
 const EMPTY = {
@@ -39,7 +39,13 @@ const Programacao = () => {
   const [editId, setEditId]       = useState(null);
   const [showForm, setShowForm]   = useState(false);
   const [saving, setSaving]       = useState(false);
-  const [search, setSearch]       = useState('');
+  const [search,           setSearch]           = useState('');
+  const [filterStatus,     setFilterStatus]     = useState('all');
+  const [filterFamilia,    setFilterFamilia]    = useState('all');
+  const [filterCliente,    setFilterCliente]    = useState('all');
+  const [filterDataInicio, setFilterDataInicio] = useState('');
+  const [filterDataFim,    setFilterDataFim]    = useState('');
+  const [showFilters,      setShowFilters]      = useState(false);
   const [dragOver, setDragOver]   = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState('');
@@ -183,21 +189,47 @@ const Programacao = () => {
 
   const [displayCount, setDisplayCount] = useState(100);
 
+  /* opções únicas para os dropdowns */
+  const { statuses, familias, clientesOpts } = useMemo(() => {
+    const st = new Set(), fa = new Set(), cl = new Set();
+    programacoes.forEach(r => {
+      if (r.status)  st.add(r.status);
+      if (r.familia) fa.add(r.familia);
+      if (r.cliente) cl.add(r.cliente);
+    });
+    return { statuses: [...st].sort(), familias: [...fa].sort(), clientesOpts: [...cl].sort() };
+  }, [programacoes]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return programacoes.filter(p =>
-      (p.placa || '').toLowerCase().includes(q) ||
-      (p.cliente || '').toLowerCase().includes(q) ||
-      (p.operador || '').toLowerCase().includes(q)
-    );
-  }, [programacoes, search]);
+    return programacoes.filter(r => {
+      if (filterStatus     !== 'all' && r.status  !== filterStatus)  return false;
+      if (filterFamilia    !== 'all' && r.familia !== filterFamilia) return false;
+      if (filterCliente    !== 'all' && r.cliente !== filterCliente) return false;
+      if (filterDataInicio && String(r.data || '').slice(0, 10) < filterDataInicio) return false;
+      if (filterDataFim    && String(r.data || '').slice(0, 10) > filterDataFim)    return false;
+      if (q) {
+        const hay = [r.placa, r.frota, r.equipamento, r.operador, r.cliente, r.familia].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [programacoes, search, filterStatus, filterFamilia, filterCliente, filterDataInicio, filterDataFim]);
 
   const displayed = useMemo(() => filtered.slice(0, displayCount), [filtered, displayCount]);
 
-  // Reseta a paginação ao buscar
+  const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterDataInicio || filterDataFim;
+
+  const clearFilters = () => {
+    setSearch(''); setFilterStatus('all');
+    setFilterFamilia('all'); setFilterCliente('all');
+    setFilterDataInicio(''); setFilterDataFim('');
+  };
+
+  // Reseta a paginação ao filtrar
   useEffect(() => {
     setDisplayCount(100);
-  }, [search]);
+  }, [search, filterStatus, filterFamilia, filterCliente, filterDataInicio, filterDataFim]);
 
   // ── ESTILOS REUTILIZÁVEIS ───────────────────────────────────────────
   const inputStyle = {
@@ -223,20 +255,89 @@ const Programacao = () => {
             {programacoes.length} registro(s) encontrados
           </p>
         </div>
-        <button onClick={openNew} style={{
-          display: 'flex', alignItems: 'center', gap: '0.4rem',
-          background: '#E30613', color: 'white', border: 'none',
-          padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
-        }}>
-          <Plus size={16} /> Nova Programação
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer',
+              background: showFilters ? '#0f172a' : 'white',
+              color: showFilters ? 'white' : '#475569',
+              border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 600,
+            }}
+          >
+            <Filter size={14} /> Filtros
+            {hasFilters && (
+              <span style={{ background: '#E30613', color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>!</span>
+            )}
+          </button>
+          <button onClick={openNew} style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            background: '#E30613', color: 'white', border: 'none',
+            padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
+          }}>
+            <Plus size={16} /> Nova Programação
+          </button>
+        </div>
       </div>
 
-      <input
-        type="text" placeholder="Buscar por placa, cliente ou operador..."
-        value={search} onChange={e => setSearch(e.target.value)}
-        style={{ width: '100%', maxWidth: 380, marginBottom: '1rem', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
-      />
+      {/* ── Filtros ── */}
+      {showFilters && (
+        <div style={{
+          background: 'white', borderRadius: 10, padding: '0.85rem 1rem',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '0.75rem',
+          display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center',
+        }}>
+          {/* busca */}
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
+            <Search size={14} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar placa, frota, operador..."
+              style={{ width: '100%', boxSizing: 'border-box', padding: '0.45rem 0.75rem 0.45rem 2rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#1e293b', outline: 'none' }}
+            />
+          </div>
+
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+            style={{ padding: '0.45rem 0.65rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer' }}>
+            <option value="all">Todos os status</option>
+            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+
+          <select value={filterFamilia} onChange={e => setFilterFamilia(e.target.value)}
+            style={{ padding: '0.45rem 0.65rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer' }}>
+            <option value="all">Todas as famílias</option>
+            {familias.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+
+          <select value={filterCliente} onChange={e => setFilterCliente(e.target.value)}
+            style={{ padding: '0.45rem 0.65rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer' }}>
+            <option value="all">Todos os clientes</option>
+            {clientesOpts.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <div style={{ width: 1, height: 28, background: '#e2e8f0', flexShrink: 0 }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <label style={{ fontSize: '0.73rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>De</label>
+            <input type="date" value={filterDataInicio} onChange={e => setFilterDataInicio(e.target.value)} max={filterDataFim || undefined}
+              style={{ padding: '0.43rem 0.6rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer', outline: 'none' }} />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <label style={{ fontSize: '0.73rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>Até</label>
+            <input type="date" value={filterDataFim} onChange={e => setFilterDataFim(e.target.value)} min={filterDataInicio || undefined}
+              style={{ padding: '0.43rem 0.6rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer', outline: 'none' }} />
+          </div>
+
+          {hasFilters && (
+            <button onClick={clearFilters}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0.45rem 0.75rem', border: '1px solid #fca5a5', borderRadius: 7, background: '#fff7f7', color: '#E30613', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}>
+              <X size={13} /> Limpar
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Tabela ── */}
       <div style={{ flex: 1, background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.07)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -385,10 +486,7 @@ const Programacao = () => {
                 </div>
                 <div>
                   <label style={labelStyle}>Cliente</label>
-                  <select value={form.cliente} onChange={e => setForm(f => ({ ...f, cliente: e.target.value }))} style={inputStyle}>
-                    <option value="">Selecione...</option>
-                    {clientes.map(cl => <option key={cl.id} value={cl.nome}>{cl.nome}</option>)}
-                  </select>
+                  <input type="text" value={form.cliente} onChange={e => setForm(f => ({ ...f, cliente: e.target.value }))} placeholder="Digite o nome do cliente..." style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Configuração</label>

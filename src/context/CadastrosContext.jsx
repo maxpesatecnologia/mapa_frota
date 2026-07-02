@@ -260,6 +260,12 @@ export const CadastrosProvider = ({ children }) => {
 
   const importProgramacaoExcel = async (parsedData) => {
     try {
+      const { error: delError } = await supabase
+        .from('programacao')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (delError) throw delError;
+
       const toInsert = parsedData.map(d => ({
         data: d.iso_date || null,
         placa: d.placa,

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { MapPin, Info } from 'lucide-react';
-import { useFleet } from '../context/FleetContext';
+import { useCadastros } from '../context/CadastrosContext';
 import { getClientCoords } from '../utils/clientCoords';
 import { getStatus } from '../utils/statusConfig';
 
@@ -8,17 +8,31 @@ const MapView = () => {
   const mapRef         = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef     = useRef([]);
-  const { filtered }   = useFleet();
+  const { programacoes } = useCadastros();
+
+  // Status mais recente por equipamento (placa || frota)
+  const equipAtual = useMemo(() => {
+    const map = new Map();
+    programacoes.forEach(r => {
+      const key = r.placa || r.frota;
+      if (!key) return;
+      const prev = map.get(key);
+      const rDate = String(r.data || '');
+      const prevDate = prev ? String(prev.data || '') : '';
+      if (!prev || rDate >= prevDate) map.set(key, r);
+    });
+    return Array.from(map.values());
+  }, [programacoes]);
 
   const clientGroups = useMemo(() => {
     const map = {};
-    filtered.forEach(eq => {
+    equipAtual.forEach(eq => {
       const key = eq.cliente || 'SEM CLIENTE';
       if (!map[key]) map[key] = [];
       map[key].push(eq);
     });
     return map;
-  }, [filtered]);
+  }, [equipAtual]);
 
   const { mapped, unmapped } = useMemo(() => {
     const m = [], u = [];
