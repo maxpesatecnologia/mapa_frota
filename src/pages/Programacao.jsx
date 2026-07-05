@@ -43,6 +43,7 @@ const Programacao = () => {
   const [filterStatus,     setFilterStatus]     = useState('all');
   const [filterFamilia,    setFilterFamilia]    = useState('all');
   const [filterCliente,    setFilterCliente]    = useState('all');
+  const [filterFrota,      setFilterFrota]      = useState('all');
   const [filterDataInicio, setFilterDataInicio] = useState('');
   const [filterDataFim,    setFilterDataFim]    = useState('');
   const [showFilters,      setShowFilters]      = useState(false);
@@ -50,7 +51,23 @@ const Programacao = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState('');
   const [currentProgId, setCurrentProgId] = useState(null);
+  const [inlineEdit, setInlineEdit] = useState(null); // { id, value }
+  const inlineEditRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const startInlineEdit = (p) => {
+    const state = { id: p.id, value: p.parte_diaria || '' };
+    inlineEditRef.current = state;
+    setInlineEdit(state);
+  };
+
+  const commitInlineEdit = async () => {
+    const current = inlineEditRef.current;
+    if (!current) return;
+    inlineEditRef.current = null;
+    setInlineEdit(null);
+    await saveProgramacao({ parte_diaria: current.value }, current.id);
+  };
 
   const openNew = () => {
     setForm(EMPTY);
@@ -190,14 +207,15 @@ const Programacao = () => {
   const [displayCount, setDisplayCount] = useState(100);
 
   /* opções únicas para os dropdowns */
-  const { statuses, familias, clientesOpts } = useMemo(() => {
-    const st = new Set(), fa = new Set(), cl = new Set();
+  const { statuses, familias, clientesOpts, frotasOpts } = useMemo(() => {
+    const st = new Set(), fa = new Set(), cl = new Set(), fr = new Set();
     programacoes.forEach(r => {
       if (r.status)  st.add(r.status);
       if (r.familia) fa.add(r.familia);
       if (r.cliente) cl.add(r.cliente);
+      if (r.frota)   fr.add(r.frota);
     });
-    return { statuses: [...st].sort(), familias: [...fa].sort(), clientesOpts: [...cl].sort() };
+    return { statuses: [...st].sort(), familias: [...fa].sort(), clientesOpts: [...cl].sort(), frotasOpts: [...fr].sort() };
   }, [programacoes]);
 
   const filtered = useMemo(() => {
@@ -206,6 +224,7 @@ const Programacao = () => {
       if (filterStatus     !== 'all' && r.status  !== filterStatus)  return false;
       if (filterFamilia    !== 'all' && r.familia !== filterFamilia) return false;
       if (filterCliente    !== 'all' && r.cliente !== filterCliente) return false;
+      if (filterFrota      !== 'all' && r.frota   !== filterFrota)   return false;
       if (filterDataInicio && String(r.data || '').slice(0, 10) < filterDataInicio) return false;
       if (filterDataFim    && String(r.data || '').slice(0, 10) > filterDataFim)    return false;
       if (q) {
@@ -214,22 +233,23 @@ const Programacao = () => {
       }
       return true;
     });
-  }, [programacoes, search, filterStatus, filterFamilia, filterCliente, filterDataInicio, filterDataFim]);
+  }, [programacoes, search, filterStatus, filterFamilia, filterCliente, filterFrota, filterDataInicio, filterDataFim]);
 
   const displayed = useMemo(() => filtered.slice(0, displayCount), [filtered, displayCount]);
 
-  const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterDataInicio || filterDataFim;
+  const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterFrota !== 'all' || filterDataInicio || filterDataFim;
 
   const clearFilters = () => {
     setSearch(''); setFilterStatus('all');
     setFilterFamilia('all'); setFilterCliente('all');
+    setFilterFrota('all');
     setFilterDataInicio(''); setFilterDataFim('');
   };
 
   // Reseta a paginação ao filtrar
   useEffect(() => {
     setDisplayCount(100);
-  }, [search, filterStatus, filterFamilia, filterCliente, filterDataInicio, filterDataFim]);
+  }, [search, filterStatus, filterFamilia, filterCliente, filterFrota, filterDataInicio, filterDataFim]);
 
   // ── ESTILOS REUTILIZÁVEIS ───────────────────────────────────────────
   const inputStyle = {
@@ -316,6 +336,12 @@ const Programacao = () => {
             {clientesOpts.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
+          <select value={filterFrota} onChange={e => setFilterFrota(e.target.value)}
+            style={{ padding: '0.45rem 0.65rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer' }}>
+            <option value="all">Todas as frotas</option>
+            {frotasOpts.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+
           <div style={{ width: 1, height: 28, background: '#e2e8f0', flexShrink: 0 }} />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -398,7 +424,27 @@ const Programacao = () => {
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500, whiteSpace: 'nowrap' }}>{p.cliente || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.config_equipamento || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.operador || '—'}</td>
-                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.parte_diaria || '—'}</td>
+                    <td style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+                      {inlineEdit?.id === p.id ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          value={inlineEdit.value}
+                          onChange={e => { const v = e.target.value; inlineEditRef.current = { ...inlineEditRef.current, value: v }; setInlineEdit(prev => ({ ...prev, value: v })); }}
+                          onBlur={commitInlineEdit}
+                          onKeyDown={e => { if (e.key === 'Enter') commitInlineEdit(); if (e.key === 'Escape') setInlineEdit(null); }}
+                          style={{ width: 100, fontSize: '0.85rem', padding: '2px 6px', border: '1.5px solid #2563eb', borderRadius: 5, outline: 'none' }}
+                        />
+                      ) : (
+                        <span
+                          onClick={() => startInlineEdit(p)}
+                          title="Clique para editar"
+                          style={{ cursor: 'pointer', padding: '2px 6px', borderRadius: 5, color: '#475569', display: 'inline-block', minWidth: 40, borderBottom: '1px dashed #cbd5e1' }}
+                        >
+                          {p.parte_diaria || '—'}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.inicio_operacao || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.intervalo || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.fim_operacao || '—'}</td>

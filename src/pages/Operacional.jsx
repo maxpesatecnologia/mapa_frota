@@ -4,12 +4,6 @@ import { getStatus } from '../utils/statusConfig';
 import { Search, Truck, CalendarDays, ChevronDown, ChevronUp, Filter, X } from 'lucide-react';
 
 /* ─── helpers ─────────────────────────────────────────────────────────────── */
-const fmtDate = (iso) => {
-  if (!iso) return '—';
-  const [y, m, d] = String(iso).slice(0, 10).split('-');
-  return `${d}/${m}/${y}`;
-};
-
 const fmtDateLong = (iso) => {
   if (!iso) return '—';
   const d = new Date(iso + 'T12:00:00');
@@ -45,27 +39,30 @@ const Operacional = () => {
   const [filterStatus,     setFilterStatus]     = useState('all');
   const [filterFamilia,    setFilterFamilia]    = useState('all');
   const [filterCliente,    setFilterCliente]    = useState('all');
+  const [filterPlaca,      setFilterPlaca]      = useState('all');
   const [filterDataInicio, setFilterDataInicio] = useState('');
   const [filterDataFim,    setFilterDataFim]    = useState('');
   const [collapsed,        setCollapsed]        = useState({});
   const [showFilters,      setShowFilters]      = useState(false);
 
   /* opções únicas para os dropdowns */
-  const { statuses, familias, clientes } = useMemo(() => {
-    const st = new Set(), fa = new Set(), cl = new Set();
+  const { statuses, familias, clientes, placas } = useMemo(() => {
+    const st = new Set(), fa = new Set(), cl = new Set(), pl = new Set();
     programacoes.forEach(r => {
-      if (r.status)   st.add(r.status);
-      if (r.familia)  fa.add(r.familia);
-      if (r.cliente)  cl.add(r.cliente);
+      if (r.status)  st.add(r.status);
+      if (r.familia) fa.add(r.familia);
+      if (r.cliente) cl.add(r.cliente);
+      if (r.placa)   pl.add(r.placa);
     });
     return {
       statuses: [...st].sort(),
       familias: [...fa].sort(),
       clientes: [...cl].sort(),
+      placas:   [...pl].sort(),
     };
   }, [programacoes]);
 
-  /* filtrar e ordenar */
+  /* filtrar e ordenar — mais recente primeiro */
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return programacoes
@@ -73,6 +70,7 @@ const Operacional = () => {
         if (filterStatus     !== 'all' && r.status  !== filterStatus)  return false;
         if (filterFamilia    !== 'all' && r.familia !== filterFamilia) return false;
         if (filterCliente    !== 'all' && r.cliente !== filterCliente) return false;
+        if (filterPlaca      !== 'all' && r.placa   !== filterPlaca)   return false;
         if (filterDataInicio && String(r.data || '').slice(0, 10) < filterDataInicio) return false;
         if (filterDataFim    && String(r.data || '').slice(0, 10) > filterDataFim)    return false;
         if (q) {
@@ -84,11 +82,11 @@ const Operacional = () => {
       })
       .sort((a, b) => {
         const da = String(a.data || ''), db = String(b.data || '');
-        if (da < db) return -1;
-        if (da > db) return 1;
+        if (da > db) return -1;
+        if (da < db) return 1;
         return (a.placa || a.frota || '').localeCompare(b.placa || b.frota || '', 'pt-BR');
       });
-  }, [programacoes, search, filterStatus, filterFamilia, filterCliente, filterDataInicio, filterDataFim]);
+  }, [programacoes, search, filterStatus, filterFamilia, filterCliente, filterPlaca, filterDataInicio, filterDataFim]);
 
   /* agrupar por data */
   const grouped = useMemo(() => {
@@ -104,11 +102,12 @@ const Operacional = () => {
   const [displayCount, setDisplayCount] = useState(15);
   const displayedGrouped = useMemo(() => grouped.slice(0, displayCount), [grouped, displayCount]);
 
-const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterDataInicio || filterDataFim;
+const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterPlaca !== 'all' || filterDataInicio || filterDataFim;
 
   const clearFilters = () => {
     setSearch(''); setFilterStatus('all');
     setFilterFamilia('all'); setFilterCliente('all');
+    setFilterPlaca('all');
     setFilterDataInicio(''); setFilterDataFim('');
   };
 
@@ -201,6 +200,13 @@ const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' |
               style={{ padding: '0.45rem 0.65rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer' }}>
               <option value="all">Todos os clientes</option>
               {clientes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            {/* placa */}
+            <select value={filterPlaca} onChange={e => setFilterPlaca(e.target.value)}
+              style={{ padding: '0.45rem 0.65rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer' }}>
+              <option value="all">Todas as placas</option>
+              {placas.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
 
             {/* separador visual */}
