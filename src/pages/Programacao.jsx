@@ -4,7 +4,7 @@ import { useCadastros } from '../context/CadastrosContext';
 
 const EMPTY = {
   data: '', placa: '', dia: '', equipamento: '', familia: '', frota: '',
-  status: '', cliente: '', config_equipamento: '', operador: '', parte_diaria: '',
+  status: '', cliente: '', config_equipamento: '', operador: '', auxiliar: '', parte_diaria: '',
   inicio_operacao: '', intervalo: '', fim_operacao: '', total_horas: '',
   houve_quebra: false, motivo: '', item_motivo: '', horas_paradas: '',
   km_inicial: '', km_final: '', km_total: '', anotacao: ''
@@ -373,7 +373,7 @@ const Programacao = () => {
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 {[
                   'Ações', 'Anexos', 'Anot.', 'Data', 'Dia', 'Placa', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente',
-                  'Configuração', 'Operador', 'Parte Diária', 'Início', 'Intervalo', 'Fim',
+                  'Configuração', 'Operador', 'Auxiliar', 'Parte Diária', 'Início', 'Intervalo', 'Fim',
                   'Total Horas', 'Quebra?', 'Motivo', 'Item', 'Horas Paradas', 'KM Inicial', 'KM Final', 'KM Total'
                 ].map((h, i) => (
                   <th key={i} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
@@ -424,6 +424,7 @@ const Programacao = () => {
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500, whiteSpace: 'nowrap' }}>{p.cliente || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.config_equipamento || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.operador || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.auxiliar || '—'}</td>
                     <td style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                       {inlineEdit?.id === p.id ? (
                         <input
@@ -538,9 +539,8 @@ const Programacao = () => {
                   <label style={labelStyle}>Configuração</label>
                   <input type="text" value={form.config_equipamento} onChange={e => setForm(f => ({ ...f, config_equipamento: e.target.value }))} style={inputStyle} />
                 </div>
-                <div style={{ gridColumn: 'span 2' }}>
+                <div>
                   <label style={labelStyle}>Operador(es)</label>
-                  {/* Chips dos operadores selecionados */}
                   {form.operador && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
                       {form.operador.split(',').map(o => o.trim()).filter(Boolean).map(op => (
@@ -551,38 +551,59 @@ const Programacao = () => {
                           fontSize: '0.78rem', fontWeight: 600,
                         }}>
                           {op}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const arr = form.operador.split(',').map(o => o.trim()).filter(o => o && o !== op);
-                              setForm(f => ({ ...f, operador: arr.join(', ') }));
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb', padding: 0, lineHeight: 1, display: 'flex' }}
-                          >
+                          <button type="button" onClick={() => {
+                            const arr = form.operador.split(',').map(o => o.trim()).filter(o => o && o !== op);
+                            setForm(f => ({ ...f, operador: arr.join(', ') }));
+                          }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb', padding: 0, lineHeight: 1, display: 'flex' }}>
                             <X size={12} />
                           </button>
                         </span>
                       ))}
                     </div>
                   )}
-                  {/* Dropdown para adicionar operador */}
-                  <select
-                    value=""
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (!val) return;
-                      const arr = form.operador ? form.operador.split(',').map(o => o.trim()).filter(Boolean) : [];
-                      if (!arr.includes(val)) {
-                        setForm(f => ({ ...f, operador: [...arr, val].join(', ') }));
-                      }
-                    }}
-                    style={inputStyle}
-                  >
+                  <select value="" onChange={e => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    const arr = form.operador ? form.operador.split(',').map(o => o.trim()).filter(Boolean) : [];
+                    if (!arr.includes(val)) setForm(f => ({ ...f, operador: [...arr, val].join(', ') }));
+                  }} style={inputStyle}>
                     <option value="">Adicionar operador...</option>
-                    {operadores
-                      .filter(op => !(form.operador || '').split(',').map(o => o.trim()).includes(op.nome))
-                      .map(op => <option key={op.id} value={op.nome}>{op.nome}</option>)
-                    }
+                    {operadores.filter(op => !(form.operador || '').split(',').map(o => o.trim()).includes(op.nome))
+                      .map(op => <option key={op.id} value={op.nome}>{op.nome}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Auxiliar(es)</label>
+                  {form.auxiliar && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                      {form.auxiliar.split(',').map(o => o.trim()).filter(Boolean).map(ax => (
+                        <span key={ax} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: '#f0fdf4', color: '#16a34a',
+                          borderRadius: 99, padding: '3px 10px',
+                          fontSize: '0.78rem', fontWeight: 600,
+                        }}>
+                          {ax}
+                          <button type="button" onClick={() => {
+                            const arr = form.auxiliar.split(',').map(o => o.trim()).filter(o => o && o !== ax);
+                            setForm(f => ({ ...f, auxiliar: arr.join(', ') }));
+                          }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#16a34a', padding: 0, lineHeight: 1, display: 'flex' }}>
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <select value="" onChange={e => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    const arr = form.auxiliar ? form.auxiliar.split(',').map(o => o.trim()).filter(Boolean) : [];
+                    if (!arr.includes(val)) setForm(f => ({ ...f, auxiliar: [...arr, val].join(', ') }));
+                  }} style={inputStyle}>
+                    <option value="">Adicionar auxiliar...</option>
+                    {operadores.filter(op => !(form.auxiliar || '').split(',').map(o => o.trim()).includes(op.nome))
+                      .map(op => <option key={op.id} value={op.nome}>{op.nome}</option>)}
                   </select>
                 </div>
                 <div>
