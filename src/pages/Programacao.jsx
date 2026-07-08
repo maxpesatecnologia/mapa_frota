@@ -39,6 +39,7 @@ const Programacao = () => {
   const [editId, setEditId]       = useState(null);
   const [showForm, setShowForm]   = useState(false);
   const [saving, setSaving]       = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [search,           setSearch]           = useState('');
   const [filterStatus,     setFilterStatus]     = useState('all');
   const [filterFamilia,    setFilterFamilia]    = useState('all');
@@ -92,11 +93,13 @@ const Programacao = () => {
     setForm(EMPTY);
     setCurrentProgId(null);
     setUploadErr('');
+    setSaveError('');
   };
 
   const handleSave = async () => {
     if (!form.data || !form.placa) return;
     setSaving(true);
+    setSaveError('');
     const dataToSave = {
       ...form,
       km_inicial: form.km_inicial ? Number(form.km_inicial) : null,
@@ -104,12 +107,15 @@ const Programacao = () => {
       km_total:   form.km_total   ? Number(form.km_total)   : null,
     };
     const resultado = await saveProgramacao(dataToSave, editId);
-    // Se for novo registro, guarda o id criado para permitir upload de anexos
+    setSaving(false);
+    if (!resultado && !editId) {
+      setSaveError('Erro ao salvar. Verifique se todas as colunas existem no banco de dados.');
+      return;
+    }
     if (!editId && resultado && resultado.id) {
       setCurrentProgId(resultado.id);
       setEditId(resultado.id);
     }
-    setSaving(false);
     close();
   };
 
@@ -840,6 +846,9 @@ const Programacao = () => {
               <button onClick={close} style={{ padding: '0.55rem 1.1rem', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', color: '#64748b', cursor: 'pointer', fontSize: '0.875rem' }}>
                 Cancelar
               </button>
+              {saveError && (
+                <span style={{ fontSize: '0.78rem', color: '#E30613', fontWeight: 600 }}>{saveError}</span>
+              )}
               <button onClick={handleSave} disabled={saving || !form.data || !form.placa} style={{
                 display: 'flex', alignItems: 'center', gap: '0.4rem',
                 padding: '0.55rem 1.1rem', borderRadius: 8, border: 'none',
