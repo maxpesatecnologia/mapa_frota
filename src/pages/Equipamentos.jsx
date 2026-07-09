@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, X, Check, Truck } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
 
-const FAMILIAS = ['Guindaste', 'Plataforma', 'Caminhão', 'Munck', 'Outro'];
 const EMPTY = { placa: '', equipamento: '', frota: '', familia: '' };
 
 const Equipamentos = () => {
@@ -41,7 +40,7 @@ const Equipamentos = () => {
     (e.familia || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const familiaGroups = [...new Set(equipamentos.map(e => e.familia).filter(Boolean))];
+  const familiaGroups = [...new Set(equipamentos.map(e => e.familia).filter(Boolean))].sort();
 
   return (
     <div style={{ padding: '1.5rem', height: '100%', overflowY: 'auto' }}>
@@ -141,14 +140,16 @@ const Equipamentos = () => {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>Família</label>
-                <select
+                <input
+                  list="familias-lista"
                   value={form.familia}
                   onChange={e => setForm(f => ({ ...f, familia: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.875rem' }}
-                >
-                  <option value="">Selecione...</option>
-                  {FAMILIAS.map(f => <option key={f} value={f}>{f}</option>)}
-                </select>
+                  placeholder="Ex: EMPILHADEIRA GLP TRIPLEX"
+                  style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                />
+                <datalist id="familias-lista">
+                  {familiaGroups.map(f => <option key={f} value={f} />)}
+                </datalist>
               </div>
             </div>
 
