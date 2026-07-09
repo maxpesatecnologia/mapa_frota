@@ -216,16 +216,18 @@ export const generateTemplate = () => {
 
 export const generateTemplateProgramacao = () => {
   const headers = [
-    'Data', 'Placa', 'Dia', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente', 
-    'Config Equipamento', 'Operador', 'Parte Diária', 'Início da Operação', 'Intervalo', 
-    'Fim da Operação', 'Total de Horas', 'Houve Quebra', 'Motivo', 'Item do Motivo', 
-    'Horas Paradas', 'KM Inicial', 'KM Final', 'KM Total'
+    'Data', 'Placa', 'Dia', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente',
+    'Config Equipamento', 'Operador', 'Parte Diária', 'Início da Operação', 'Intervalo',
+    'Fim da Operação', 'Total de Horas', 'Houve Quebra', 'Motivo', 'Item do Motivo',
+    'Horas Paradas', 'KM Inicial', 'KM Final', 'KM Total',
+    'Horímetro Inicial', 'Horímetro Final', 'Horímetro Total'
   ];
   const example = [
     '15/01/2026', 'ABC-1234', 'Quinta-feira', 'Escavadeira', 'Linha Amarela', 'Frota Própria', 'Disponível', 'Vale',
     'Padrão', 'João Silva', '001', '08:00', '01:00',
     '17:00', '08:00', 'Não', '', '',
-    '', 1000, 1100, 100
+    '', 1000, 1100, 100,
+    500, 508, 8
   ];
 
   const ws = XLSX.utils.aoa_to_sheet([headers, example]);
@@ -237,16 +239,18 @@ export const generateTemplateProgramacao = () => {
 
 export const exportToExcelProgramacao = (data, fileName = 'programacao_export.xlsx') => {
   const headers = [
-    'Data', 'Placa', 'Dia', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente', 
-    'Config Equipamento', 'Operador', 'Parte Diária', 'Início da Operação', 'Intervalo', 
-    'Fim da Operação', 'Total de Horas', 'Houve Quebra', 'Motivo', 'Item do Motivo', 
-    'Horas Paradas', 'KM Inicial', 'KM Final', 'KM Total'
+    'Data', 'Placa', 'Dia', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente',
+    'Config Equipamento', 'Operador', 'Parte Diária', 'Início da Operação', 'Intervalo',
+    'Fim da Operação', 'Total de Horas', 'Houve Quebra', 'Motivo', 'Item do Motivo',
+    'Horas Paradas', 'KM Inicial', 'KM Final', 'KM Total',
+    'Horímetro Inicial', 'Horímetro Final', 'Horímetro Total'
   ];
   const rows = data.map(r => [
     r.data ? new Date(r.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '', r.placa, r.dia, r.equipamento, r.familia, r.frota, r.status, r.cliente,
     r.config_equipamento, r.operador, r.parte_diaria, r.inicio_operacao, r.intervalo,
     r.fim_operacao, r.total_horas, r.houve_quebra ? 'Sim' : 'Não', r.motivo, r.item_motivo,
-    r.horas_paradas, r.km_inicial, r.km_final, r.km_total
+    r.horas_paradas, r.km_inicial, r.km_final, r.km_total,
+    r.horimetro_inicial, r.horimetro_final, r.horimetro_total
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   ws['!cols'] = headers.map(() => ({ wch: 18 }));

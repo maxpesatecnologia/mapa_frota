@@ -7,8 +7,18 @@ const EMPTY = {
   status: '', cliente: '', config_equipamento: '', operador: '', auxiliar: '', parte_diaria: '',
   inicio_operacao: '', intervalo: '', fim_operacao: '', total_horas: '',
   houve_quebra: false, motivo: '', item_motivo: '', horas_paradas: '',
-  km_inicial: '', km_final: '', km_total: '', anotacao: ''
+  km_inicial: '', km_final: '', km_total: '',
+  horimetro_inicial: '', horimetro_final: '', horimetro_total: '',
+  anotacao: ''
 };
+
+const TABLE_HEADERS = [
+  'Ações', 'Anexos', 'Anot.', 'Data', 'Dia', 'Placa', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente',
+  'Configuração', 'Operador', 'Auxiliar', 'Parte Diária', 'Início', 'Intervalo', 'Fim',
+  'Total Horas', 'Quebra?', 'Motivo', 'Item', 'Horas Paradas',
+  'KM Inicial', 'KM Final', 'KM Total',
+  'Horímetro Inicial', 'Horímetro Final', 'Horímetro Total'
+];
 
 const TIPOS_ACEITOS = '.jpg,.jpeg,.png,.pdf,.doc,.docx';
 const MAX_MB = 10;
@@ -106,6 +116,9 @@ const Programacao = () => {
       km_inicial: form.km_inicial ? Number(form.km_inicial) : null,
       km_final:   form.km_final   ? Number(form.km_final)   : null,
       km_total:   form.km_total   ? Number(form.km_total)   : null,
+      horimetro_inicial: form.horimetro_inicial ? Number(form.horimetro_inicial) : null,
+      horimetro_final:   form.horimetro_final   ? Number(form.horimetro_final)   : null,
+      horimetro_total:   form.horimetro_total   ? Number(form.horimetro_total)   : null,
     };
     const resultado = await saveProgramacao(dataToSave, editId);
     setSaving(false);
@@ -167,8 +180,13 @@ const Programacao = () => {
       if (!isNaN(tot) && Number(form.km_total) !== tot) { newForm.km_total = tot; changed = true; }
     }
 
+    if (form.horimetro_inicial && form.horimetro_final) {
+      const tot = Number(form.horimetro_final) - Number(form.horimetro_inicial);
+      if (!isNaN(tot) && Number(form.horimetro_total) !== tot) { newForm.horimetro_total = tot; changed = true; }
+    }
+
     if (changed) setForm(newForm);
-  }, [form.data, form.inicio_operacao, form.fim_operacao, form.intervalo, form.km_inicial, form.km_final]);
+  }, [form.data, form.inicio_operacao, form.fim_operacao, form.intervalo, form.km_inicial, form.km_final, form.horimetro_inicial, form.horimetro_final]);
 
   // ── UPLOAD DE ARQUIVOS ──────────────────────────────────────────────
   const processarArquivos = useCallback(async (files) => {
@@ -383,18 +401,14 @@ const Programacao = () => {
           <table style={{ width: 'max-content', minWidth: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                {[
-                  'Ações', 'Anexos', 'Anot.', 'Data', 'Dia', 'Placa', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente',
-                  'Configuração', 'Operador', 'Auxiliar', 'Parte Diária', 'Início', 'Intervalo', 'Fim',
-                  'Total Horas', 'Quebra?', 'Motivo', 'Item', 'Horas Paradas', 'KM Inicial', 'KM Final', 'KM Total'
-                ].map((h, i) => (
+                {TABLE_HEADERS.map((h, i) => (
                   <th key={i} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {displayed.length === 0 ? (
-                <tr><td colSpan={25} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>
+                <tr><td colSpan={TABLE_HEADERS.length} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>
                   {programacoes.length === 0 ? 'Nenhuma programação cadastrada.' : 'Nenhum resultado.'}
                 </td></tr>
               ) : displayed.map((p, i) => {
@@ -473,6 +487,9 @@ const Programacao = () => {
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.km_inicial || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.km_final || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.km_total || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_inicial || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_final || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_total || '—'}</td>
                   </tr>
                 );
               })}
@@ -646,19 +663,34 @@ const Programacao = () => {
                   <input type="text" value={form.total_horas} readOnly style={{ ...inputStyle, background: '#f8fafc' }} />
                 </div>
 
-                {/* ── KM / Horímetro ── */}
-                <h3 style={sectionTitleStyle}>KM / Horímetro</h3>
+                {/* ── KM ── */}
+                <h3 style={sectionTitleStyle}>KM</h3>
                 <div>
-                  <label style={labelStyle}>Inicial</label>
+                  <label style={labelStyle}>KM Inicial</label>
                   <input type="number" value={form.km_inicial} onChange={e => setForm(f => ({ ...f, km_inicial: e.target.value }))} style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Final</label>
+                  <label style={labelStyle}>KM Final</label>
                   <input type="number" value={form.km_final} onChange={e => setForm(f => ({ ...f, km_final: e.target.value }))} style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Total</label>
+                  <label style={labelStyle}>KM Total</label>
                   <input type="number" value={form.km_total} readOnly style={{ ...inputStyle, background: '#f8fafc' }} />
+                </div>
+
+                {/* ── Horímetro ── */}
+                <h3 style={sectionTitleStyle}>Horímetro</h3>
+                <div>
+                  <label style={labelStyle}>Horímetro Inicial</label>
+                  <input type="number" value={form.horimetro_inicial} onChange={e => setForm(f => ({ ...f, horimetro_inicial: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Horímetro Final</label>
+                  <input type="number" value={form.horimetro_final} onChange={e => setForm(f => ({ ...f, horimetro_final: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Horímetro Total</label>
+                  <input type="number" value={form.horimetro_total} readOnly style={{ ...inputStyle, background: '#f8fafc' }} />
                 </div>
 
                 {/* ── Ocorrências ── */}

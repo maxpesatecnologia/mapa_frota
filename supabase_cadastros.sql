@@ -148,4 +148,12 @@ ON CONFLICT (id) DO NOTHING;
 -- 4. Políticas de acesso ao Storage
 CREATE POLICY "storage_prog_select" ON storage.objects FOR SELECT USING (bucket_id = 'programacao-anexos');
 CREATE POLICY "storage_prog_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'programacao-anexos');
+
+-- ══════════════════════════════════════════════════════
+-- MIGRATION: Desmembra KM e Horímetro na Programação
+-- Execute no Supabase > SQL Editor
+-- ══════════════════════════════════════════════════════
+ALTER TABLE programacao ADD COLUMN IF NOT EXISTS horimetro_inicial numeric;
+ALTER TABLE programacao ADD COLUMN IF NOT EXISTS horimetro_final   numeric;
+ALTER TABLE programacao ADD COLUMN IF NOT EXISTS horimetro_total   numeric;
 CREATE POLICY "storage_prog_delete" ON storage.objects FOR DELETE USING (bucket_id = 'programacao-anexos');
