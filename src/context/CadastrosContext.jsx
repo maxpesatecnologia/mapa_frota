@@ -169,6 +169,20 @@ export const CadastrosProvider = ({ children }) => {
     return lista;
   }, []);
 
+  // Carrega anexos de várias programações de uma vez (ex: página atual da tabela)
+  const loadAnexosBulk = useCallback(async (programacaoIds) => {
+    const ids = [...new Set(programacaoIds)].filter(Boolean);
+    if (ids.length === 0) return;
+    const { data } = await supabase
+      .from('programacao_anexos')
+      .select('*')
+      .in('programacao_id', ids)
+      .order('created_at', { ascending: true });
+    const grouped = Object.fromEntries(ids.map(id => [id, []]));
+    (data || []).forEach(a => { grouped[a.programacao_id]?.push(a); });
+    setAnexosByProg(prev => ({ ...prev, ...grouped }));
+  }, []);
+
   const uploadAnexo = async (file, programacaoId) => {
     const ext = file.name.split('.').pop();
     const path = `${programacaoId}/${Date.now()}_${file.name}`;
@@ -332,7 +346,7 @@ export const CadastrosProvider = ({ children }) => {
       importProgramacaoExcel,
       clearProgramacao,
       loadClientes, loadOperadores, loadEquipamentos, loadProgramacoes,
-      loadAnexos, uploadAnexo, deleteAnexo, getAnexoUrl,
+      loadAnexos, loadAnexosBulk, uploadAnexo, deleteAnexo, getAnexoUrl,
     }}>
       {children}
     </CadastrosContext.Provider>

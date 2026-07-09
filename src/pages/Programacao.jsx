@@ -32,7 +32,7 @@ const Programacao = () => {
   const {
     programacoes, saveProgramacao, deleteProgramacao,
     clientes, operadores, equipamentos, statusList, motivosList, itensMotivoList,
-    anexosByProg, loadAnexos, uploadAnexo, deleteAnexo, getAnexoUrl
+    anexosByProg, loadAnexos, loadAnexosBulk, uploadAnexo, deleteAnexo, getAnexoUrl
   } = useCadastros();
 
   const [form, setForm]           = useState(EMPTY);
@@ -52,6 +52,7 @@ const Programacao = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState('');
   const [currentProgId, setCurrentProgId] = useState(null);
+  const [viewingRow, setViewingRow] = useState(null);
   const [inlineEdit, setInlineEdit] = useState(null); // { id, value }
   const inlineEditRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -243,6 +244,11 @@ const Programacao = () => {
 
   const displayed = useMemo(() => filtered.slice(0, displayCount), [filtered, displayCount]);
 
+  const displayedIdsKey = displayed.map(p => p.id).join(',');
+  useEffect(() => {
+    if (displayed.length > 0) loadAnexosBulk(displayed.map(p => p.id));
+  }, [displayedIdsKey]);
+
   const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterFrota !== 'all' || filterDataInicio || filterDataFim;
 
   const clearFilters = () => {
@@ -407,9 +413,13 @@ const Programacao = () => {
                     {/* Badge Anexos */}
                     <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                       {qtdAnexos > 0 ? (
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:4, background:'#eff6ff', color:'#2563eb', borderRadius:99, padding:'2px 8px', fontSize:'0.75rem', fontWeight:600 }}>
+                        <button
+                          onClick={() => setViewingRow(p)}
+                          title="Ver anexos"
+                          style={{ display:'inline-flex', alignItems:'center', gap:4, background:'#eff6ff', color:'#2563eb', borderRadius:99, padding:'2px 8px', fontSize:'0.75rem', fontWeight:600, border:'none', cursor:'pointer' }}
+                        >
                           <Paperclip size={11} />{qtdAnexos}
-                        </span>
+                        </button>
                       ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
                     </td>
                     {/* Ícone Anotação */}
@@ -858,6 +868,75 @@ const Programacao = () => {
               }}>
                 <Check size={15} /> {saving ? 'Salvando...' : 'Salvar'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════
+          MODAL DE VISUALIZAÇÃO DE ANEXOS
+      ════════════════════════════════════════ */}
+      {viewingRow && (
+        <div
+          onClick={() => setViewingRow(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1.5rem' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: '100%', maxWidth: 640, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.1rem 1.5rem', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, background: 'white', borderTopLeftRadius: 14, borderTopRightRadius: 14 }}>
+              <div>
+                <h2 style={{ fontSize: '1.05rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Paperclip size={16} color="#2563eb" /> Anexos — {viewingRow.placa || viewingRow.equipamento || '—'}
+                </h2>
+                <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 2 }}>
+                  {viewingRow.data ? new Date(viewingRow.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''}
+                </p>
+              </div>
+              <button onClick={() => setViewingRow(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
+            </div>
+
+            <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {(anexosByProg[viewingRow.id] || []).map(anx => {
+                const url = getAnexoUrl(anx.storage_path);
+                const isImagem = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(anx.tipo_arquivo || '');
+                const isPdf = anx.tipo_arquivo === 'pdf';
+                return (
+                  <div key={anx.id} style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0.65rem 0.9rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        {iconeArquivo(anx.tipo_arquivo)}
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {anx.nome_arquivo}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8' }}>
+                            {(anx.tipo_arquivo || '').toUpperCase()} · {formatBytes(anx.tamanho_bytes)}
+                          </p>
+                        </div>
+                      </div>
+                      <a href={url} download={anx.nome_arquivo} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.75rem', borderRadius: 8, background: '#eff6ff', color: '#2563eb', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}
+                      >
+                        <Download size={13} /> Baixar
+                      </a>
+                    </div>
+                    <div style={{ background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {isImagem ? (
+                        <img src={url} alt={anx.nome_arquivo} style={{ maxWidth: '100%', maxHeight: 400, display: 'block', margin: '0 auto' }} />
+                      ) : isPdf ? (
+                        <iframe src={url} title={anx.nome_arquivo} style={{ width: '100%', height: 420, border: 'none' }} />
+                      ) : (
+                        <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
+                          {iconeArquivo(anx.tipo_arquivo)}
+                          <p style={{ margin: '8px 0 0' }}>Pré-visualização não disponível para este tipo — use "Baixar" para abrir.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {(anexosByProg[viewingRow.id] || []).length === 0 && (
+                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Nenhum anexo encontrado.</p>
+              )}
             </div>
           </div>
         </div>
