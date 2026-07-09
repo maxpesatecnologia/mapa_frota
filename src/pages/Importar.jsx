@@ -12,6 +12,7 @@ const Importar = () => {
   const [parseError, setParseError] = useState('');
   const [imported, setImported]     = useState(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [exporting, setExporting]   = useState(false);
 
   const process = async (file) => {
     if (!file) return;
@@ -38,8 +39,14 @@ const Importar = () => {
     setImported(null);
   };
 
-  const handleExport = () => {
-    exportToExcelProgramacao(programacoes, `programacao_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const fresh = await loadProgramacoes();
+      exportToExcelProgramacao(fresh, `programacao_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -96,17 +103,20 @@ const Importar = () => {
             <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Exportar Excel</span>
           </div>
           <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
-            Exporta todos os registros de programação ({programacoes.length} registro(s)).
+            Exporta todos os registros de programação, antigos e recém-adicionados ({programacoes.length} registro(s) carregado(s)).
           </p>
-          <button onClick={handleExport} disabled={programacoes.length === 0} style={{
+          <button onClick={handleExport} disabled={exporting || programacoes.length === 0} style={{
             display: 'flex', alignItems: 'center', gap: '0.4rem',
             padding: '0.55rem 1.1rem', borderRadius: 8, border: '1px solid rgba(22,163,74,0.3)',
             background: 'rgba(22,163,74,0.08)', color: '#16a34a',
             fontWeight: 600, fontSize: '0.85rem',
-            cursor: programacoes.length === 0 ? 'not-allowed' : 'pointer',
-            opacity: programacoes.length === 0 ? 0.5 : 1,
+            cursor: (exporting || programacoes.length === 0) ? 'not-allowed' : 'pointer',
+            opacity: (exporting || programacoes.length === 0) ? 0.5 : 1,
           }}>
-            <Download size={14} /> Exportar ({programacoes.length})
+            {exporting
+              ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Atualizando e exportando...</>
+              : <><Download size={14} /> Exportar ({programacoes.length})</>
+            }
           </button>
         </div>
 

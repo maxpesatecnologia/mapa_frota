@@ -54,6 +54,7 @@ export const CadastrosProvider = ({ children }) => {
       }
     }
     setProgramacoes(allData);
+    return allData;
   }, []);
 
   const loadStatus = useCallback(async () => {
