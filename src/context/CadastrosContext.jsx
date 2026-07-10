@@ -301,9 +301,12 @@ export const CadastrosProvider = ({ children }) => {
         motivo: d.motivo,
         item_motivo: d.item_motivo,
         horas_paradas: d.horas_paradas !== null ? String(d.horas_paradas) : null,
-        km_inicial: d.hor_km_inicio,
-        km_final: d.hor_km_final,
-        km_total: d.hor_km_total
+        km_inicial: d.km_inicial,
+        km_final: d.km_final,
+        km_total: d.km_total,
+        horimetro_inicial: d.horimetro_inicial,
+        horimetro_final: d.horimetro_final,
+        horimetro_total: d.horimetro_total,
       }));
 
       const chunkSize = 500;

@@ -105,6 +105,14 @@ export const parseExcel = (file) =>
         const kHorFim   = findKey('hor km final', 'horkmfinal', 'horfim', 'horimetro final', 'km final', 'hor final', 'km final', 'kmfinal');
         const kHorTot   = findKey('hor km total', 'horkmtotal', 'hortotal', 'km total', 'horimetro total', 'km total', 'kmtotal');
 
+        // Colunas específicas da Programação (KM e Horímetro desmembrados)
+        const kKmIni    = findKey('km inicial', 'km inicio');
+        const kKmFim    = findKey('km final');
+        const kKmTot    = findKey('km total');
+        const kHorimIni = findKey('horimetro inicial', 'horímetro inicial', 'horimetro inicio');
+        const kHorimFim = findKey('horimetro final', 'horímetro final');
+        const kHorimTot = findKey('horimetro total', 'horímetro total');
+
         const normalized = rows
           .map((row) => {
             const rawDate = get(row, kData);
@@ -154,6 +162,12 @@ export const parseExcel = (file) =>
               hor_km_inicio:     num(get(row, kHorIni)),
               hor_km_final:      num(get(row, kHorFim)),
               hor_km_total:      num(get(row, kHorTot)),
+              km_inicial:        num(get(row, kKmIni)),
+              km_final:          num(get(row, kKmFim)),
+              km_total:          num(get(row, kKmTot)),
+              horimetro_inicial: num(get(row, kHorimIni)),
+              horimetro_final:   num(get(row, kHorimFim)),
+              horimetro_total:   num(get(row, kHorimTot)),
             };
           })
           .filter((r) => r.placa || r.frota);
