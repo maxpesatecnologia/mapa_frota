@@ -13,12 +13,12 @@ const EMPTY = {
 };
 
 const TABLE_HEADERS = [
-  'Ações', 'Data', 'Dia', 'Frota', 'Status', 'Cliente', 'Placa', 'Equipamento', 'Família',
+  'Ações', 'Anexos', 'Data', 'Dia', 'Frota', 'Status', 'Cliente', 'Placa', 'Equipamento', 'Família',
   'Configuração', 'Operador', 'Auxiliar', 'Parte Diária', 'Início', 'Intervalo', 'Fim',
   'Total Horas', 'Quebra?', 'Motivo', 'Item', 'Horas Paradas',
   'KM Inicial', 'KM Final', 'KM Total',
   'Horímetro Inicial', 'Horímetro Final', 'Horímetro Total',
-  'Anexos', 'Anot.'
+  'Anot.'
 ];
 
 const TIPOS_ACEITOS = '.jpg,.jpeg,.png,.pdf,.doc,.docx';
@@ -450,6 +450,18 @@ const Programacao = () => {
                         <button onClick={() => handleDelete(p.id)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#E30613', cursor: 'pointer' }}><Trash2 size={14} /></button>
                       </div>
                     </td>
+                    {/* Badge Anexos */}
+                    <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                      {qtdAnexos > 0 ? (
+                        <button
+                          onClick={() => setViewingRow(p)}
+                          title="Ver anexos"
+                          style={{ display:'inline-flex', alignItems:'center', gap:4, background:'#eff6ff', color:'#2563eb', borderRadius:99, padding:'2px 8px', fontSize:'0.75rem', fontWeight:600, border:'none', cursor:'pointer' }}
+                        >
+                          <Paperclip size={11} />{qtdAnexos}
+                        </button>
+                      ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
+                    </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'nowrap' }}>{p.data ? new Date(p.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.dia || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.frota || '—'}</td>
@@ -498,18 +510,6 @@ const Programacao = () => {
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_inicial || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_final || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_total || '—'}</td>
-                    {/* Badge Anexos */}
-                    <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
-                      {qtdAnexos > 0 ? (
-                        <button
-                          onClick={() => setViewingRow(p)}
-                          title="Ver anexos"
-                          style={{ display:'inline-flex', alignItems:'center', gap:4, background:'#eff6ff', color:'#2563eb', borderRadius:99, padding:'2px 8px', fontSize:'0.75rem', fontWeight:600, border:'none', cursor:'pointer' }}
-                        >
-                          <Paperclip size={11} />{qtdAnexos}
-                        </button>
-                      ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
-                    </td>
                     {/* Ícone Anotação */}
                     <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                       {p.anotacao ? (
