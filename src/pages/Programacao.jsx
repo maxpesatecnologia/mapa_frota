@@ -23,6 +23,31 @@ const TABLE_HEADERS = [
 const TIPOS_ACEITOS = '.jpg,.jpeg,.png,.pdf,.doc,.docx';
 const MAX_MB = 10;
 
+const normalizarStatus = (s) => (s || '')
+  .toString().trim().toLowerCase()
+  .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+const isTrabalhandoSpotContrato = (s) => {
+  const n = normalizarStatus(s);
+  return n.includes('spot') && n.includes('contrato');
+};
+
+// Placas "somente horímetro" com jornada fixa 07:00-17:00 quando entram em Trabalhando Spot/Contrato
+const PLACAS_HORARIO_FIXO = new Set([
+  'PTE2024090407', 'PTE2024090405', 'PTE2024090408',
+  'PTE105607053', 'PTE105607054', 'PTE105607055', 'PTE105607056',
+  'PTE2024090401', 'PTE2024090402', 'PTE2024090403',
+  'EG030353R6275',
+  'PM12252273', 'PM12252274', 'PM12252275', 'PM12252276', 'PM12252277',
+  'PM3263593', 'PM3263594', 'PM3263595', 'PM3263599', 'PM3263600',
+  'PMB20260058', 'PMB20260049', 'PMB20260050', 'PMB20260053', 'PMB20260054', 'PMB20260055',
+  'EP20260050', 'EP20260055', 'EP20260060', 'EP20260075', 'EP20260079',
+  'EFP20260307', 'EFP20260308', 'EFP20260309', 'EFP20260167',
+  'TE20250044', 'TE20260074', 'TE20260075', 'TE20260076',
+]);
+
+const temHorarioFixo = (placa) => PLACAS_HORARIO_FIXO.has((placa || '').toString().trim().toUpperCase());
+
 const iconeArquivo = (tipo) => {
   if (!tipo) return <File size={16} />;
   if (['jpg','jpeg','png','gif','webp'].includes(tipo)) return <FileImage size={16} color="#10b981" />;
@@ -559,7 +584,18 @@ const Programacao = () => {
                 </div>
                 <div>
                   <label style={labelStyle}>Status</label>
-                  <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={inputStyle}>
+                  <select value={form.status} onChange={e => {
+                    const novoStatus = e.target.value;
+                    setForm(f => {
+                      const atualizado = { ...f, status: novoStatus };
+                      if (isTrabalhandoSpotContrato(novoStatus) && temHorarioFixo(f.placa)) {
+                        atualizado.inicio_operacao = '07:00';
+                        atualizado.intervalo = '00:00';
+                        atualizado.fim_operacao = '17:00';
+                      }
+                      return atualizado;
+                    });
+                  }} style={inputStyle}>
                     <option value="">Selecione...</option>
                     {statusList.map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
                   </select>
