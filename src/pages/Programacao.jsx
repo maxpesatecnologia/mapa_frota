@@ -13,11 +13,12 @@ const EMPTY = {
 };
 
 const TABLE_HEADERS = [
-  'Ações', 'Anexos', 'Anot.', 'Data', 'Dia', 'Placa', 'Equipamento', 'Família', 'Frota', 'Status', 'Cliente',
+  'Ações', 'Data', 'Dia', 'Frota', 'Status', 'Cliente', 'Placa', 'Equipamento', 'Família',
   'Configuração', 'Operador', 'Auxiliar', 'Parte Diária', 'Início', 'Intervalo', 'Fim',
   'Total Horas', 'Quebra?', 'Motivo', 'Item', 'Horas Paradas',
   'KM Inicial', 'KM Final', 'KM Total',
-  'Horímetro Inicial', 'Horímetro Final', 'Horímetro Total'
+  'Horímetro Inicial', 'Horímetro Final', 'Horímetro Total',
+  'Anexos', 'Anot.'
 ];
 
 const TIPOS_ACEITOS = '.jpg,.jpeg,.png,.pdf,.doc,.docx';
@@ -449,34 +450,16 @@ const Programacao = () => {
                         <button onClick={() => handleDelete(p.id)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#E30613', cursor: 'pointer' }}><Trash2 size={14} /></button>
                       </div>
                     </td>
-                    {/* Badge Anexos */}
-                    <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
-                      {qtdAnexos > 0 ? (
-                        <button
-                          onClick={() => setViewingRow(p)}
-                          title="Ver anexos"
-                          style={{ display:'inline-flex', alignItems:'center', gap:4, background:'#eff6ff', color:'#2563eb', borderRadius:99, padding:'2px 8px', fontSize:'0.75rem', fontWeight:600, border:'none', cursor:'pointer' }}
-                        >
-                          <Paperclip size={11} />{qtdAnexos}
-                        </button>
-                      ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
-                    </td>
-                    {/* Ícone Anotação */}
-                    <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
-                      {p.anotacao ? (
-                        <span title={p.anotacao} style={{ color: '#f59e0b' }}><MessageSquare size={15} /></span>
-                      ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
-                    </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'nowrap' }}>{p.data ? new Date(p.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.dia || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.frota || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.status || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500, whiteSpace: 'nowrap' }}>{p.cliente || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', color: '#1e293b', background: '#f1f5f9', padding: '2px 8px', borderRadius: 6 }}>{p.placa || '—'}</span>
                     </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.equipamento || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.familia || '—'}</td>
-                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.frota || '—'}</td>
-                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.status || '—'}</td>
-                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500, whiteSpace: 'nowrap' }}>{p.cliente || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.config_equipamento || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.operador || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.auxiliar || '—'}</td>
@@ -515,6 +498,24 @@ const Programacao = () => {
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_inicial || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_final || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.horimetro_total || '—'}</td>
+                    {/* Badge Anexos */}
+                    <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                      {qtdAnexos > 0 ? (
+                        <button
+                          onClick={() => setViewingRow(p)}
+                          title="Ver anexos"
+                          style={{ display:'inline-flex', alignItems:'center', gap:4, background:'#eff6ff', color:'#2563eb', borderRadius:99, padding:'2px 8px', fontSize:'0.75rem', fontWeight:600, border:'none', cursor:'pointer' }}
+                        >
+                          <Paperclip size={11} />{qtdAnexos}
+                        </button>
+                      ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
+                    </td>
+                    {/* Ícone Anotação */}
+                    <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                      {p.anotacao ? (
+                        <span title={p.anotacao} style={{ color: '#f59e0b' }}><MessageSquare size={15} /></span>
+                      ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
+                    </td>
                   </tr>
                 );
               })}
