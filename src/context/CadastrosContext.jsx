@@ -185,7 +185,13 @@ export const CadastrosProvider = ({ children }) => {
 
   const uploadAnexo = async (file, programacaoId) => {
     const ext = file.name.split('.').pop();
-    const path = `${programacaoId}/${Date.now()}_${file.name}`;
+    // Limpar o nome do arquivo: remover acentos, trocar espaços e caracteres especiais por underscore
+    const cleanName = file.name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      
+    const path = `${programacaoId}/${Date.now()}_${cleanName}`;
     const { error: upErr } = await supabase.storage
       .from('programacao-anexos')
       .upload(path, file, { upsert: false });
