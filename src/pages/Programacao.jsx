@@ -43,7 +43,7 @@ const PLACAS_HORARIO_FIXO = new Set([
   'PM3263593', 'PM3263594', 'PM3263595', 'PM3263599', 'PM3263600',
   'PMB20260058', 'PMB20260049', 'PMB20260050', 'PMB20260053', 'PMB20260054', 'PMB20260055',
   'EP20260050', 'EP20260055', 'EP20260060', 'EP20260075', 'EP20260079',
-  'EFP20260307', 'EFP20260308', 'EFP20260309', 'EFP20260167',
+  'EPF20260307', 'EPF20260308', 'EPF20260309', 'EPF20260167',
   'TE20250044', 'TE20260074', 'TE20260075', 'TE20260076',
 ]);
 
@@ -91,6 +91,7 @@ const Programacao = () => {
   const [viewingRow, setViewingRow] = useState(null);
   const [inlineEdit, setInlineEdit] = useState(null); // { id, value }
   const inlineEditRef = useRef(null);
+  const [statusEditId, setStatusEditId] = useState(null);
   const fileInputRef = useRef(null);
 
   const startInlineEdit = (p) => {
@@ -105,6 +106,18 @@ const Programacao = () => {
     inlineEditRef.current = null;
     setInlineEdit(null);
     await saveProgramacao({ parte_diaria: current.value }, current.id);
+  };
+
+  const handleStatusInlineChange = async (e, p) => {
+    const novoStatus = e.target.value;
+    const payload = { status: novoStatus };
+    if (isTrabalhandoSpotContrato(novoStatus) && temHorarioFixo(p.placa)) {
+      payload.inicio_operacao = '07:00';
+      payload.intervalo = '00:00';
+      payload.fim_operacao = '17:00';
+    }
+    setStatusEditId(null);
+    await saveProgramacao(payload, p.id);
   };
 
   const openNew = () => {
@@ -465,7 +478,28 @@ const Programacao = () => {
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'nowrap' }}>{p.data ? new Date(p.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.dia || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.frota || '—'}</td>
-                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.status || '—'}</td>
+                    <td style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+                      {statusEditId === p.id ? (
+                        <select
+                          autoFocus
+                          defaultValue={p.status || ''}
+                          onChange={e => handleStatusInlineChange(e, p)}
+                          onBlur={() => setStatusEditId(null)}
+                          style={{ fontSize: '0.85rem', padding: '2px 6px', border: '1.5px solid #2563eb', borderRadius: 5, outline: 'none' }}
+                        >
+                          <option value="">Selecione...</option>
+                          {statusList.map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+                        </select>
+                      ) : (
+                        <span
+                          onClick={() => setStatusEditId(p.id)}
+                          title="Clique para editar"
+                          style={{ cursor: 'pointer', padding: '2px 6px', borderRadius: 5, color: '#475569', display: 'inline-block', minWidth: 40, borderBottom: '1px dashed #cbd5e1' }}
+                        >
+                          {p.status || '—'}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500, whiteSpace: 'nowrap' }}>{p.cliente || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', color: '#1e293b', background: '#f1f5f9', padding: '2px 8px', borderRadius: 6 }}>{p.placa || '—'}</span>
