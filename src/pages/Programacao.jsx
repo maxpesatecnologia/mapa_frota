@@ -6,7 +6,7 @@ const EMPTY = {
   data: '', placa: '', dia: '', equipamento: '', familia: '', frota: '',
   status: '', cliente: '', config_equipamento: '', operador: '', auxiliar: '', parte_diaria: '',
   inicio_operacao: '', intervalo: '', fim_operacao: '', total_horas: '',
-  houve_quebra: false, motivo: '', item_motivo: '', horas_paradas: '',
+  houve_quebra: false, motivo: '', item_motivo: '', horas_paradas: '00:00',
   km_inicial: '', km_final: '', km_total: '',
   horimetro_inicial: '', horimetro_final: '', horimetro_total: '',
   anotacao: ''
