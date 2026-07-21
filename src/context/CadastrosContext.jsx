@@ -137,20 +137,29 @@ export const CadastrosProvider = ({ children }) => {
   };
 
   // PROGRAMACAO
+  // Edições pontuais (inline ou via formulário) atualizam só o registro afetado no estado local,
+  // em vez de recarregar as ~14 mil linhas da tabela a cada save — isso é o que travava a tela.
+  const sortByDataDesc = (arr) => [...arr].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
+
   const saveProgramacao = async (form, id) => {
     if (id) {
       const { error } = await supabase.from('programacao').update(form).eq('id', id);
-      if (!error) await loadProgramacoes();
+      if (!error) {
+        setProgramacoes(prev => sortByDataDesc(prev.map(p => p.id === id ? { ...p, ...form } : p)));
+      }
       return !error;
     }
     const { data, error } = await supabase.from('programacao').insert(form).select().single();
-    if (!error) { await loadProgramacoes(); return data; }
+    if (!error) {
+      setProgramacoes(prev => sortByDataDesc([data, ...prev]));
+      return data;
+    }
     return null;
   };
   const deleteProgramacao = async (id) => {
     const { error } = await supabase.from('programacao').delete().eq('id', id);
     if (!error) {
-      await loadProgramacoes();
+      setProgramacoes(prev => prev.filter(p => p.id !== id));
       setAnexosByProg(prev => { const n = { ...prev }; delete n[id]; return n; });
     }
     return !error;

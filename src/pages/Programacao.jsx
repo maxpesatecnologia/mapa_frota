@@ -115,6 +115,7 @@ const Programacao = () => {
       payload.inicio_operacao = '07:00';
       payload.intervalo = '00:00';
       payload.fim_operacao = '17:00';
+      payload.horas_paradas = '00:00';
     }
     setStatusEditId(null);
     await saveProgramacao(payload, p.id);
@@ -627,6 +628,7 @@ const Programacao = () => {
                         atualizado.inicio_operacao = '07:00';
                         atualizado.intervalo = '00:00';
                         atualizado.fim_operacao = '17:00';
+                        atualizado.horas_paradas = '00:00';
                       }
                       return atualizado;
                     });
