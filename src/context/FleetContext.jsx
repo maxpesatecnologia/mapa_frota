@@ -34,6 +34,7 @@ export const FleetProvider = ({ children }) => {
         .from(TABLE)
         .select('*')
         .order('iso_date', { ascending: false })
+        .order('id', { ascending: true })
         .range(from, from + step - 1);
 
       if (error) {

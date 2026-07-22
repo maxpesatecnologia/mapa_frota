@@ -39,6 +39,7 @@ export const CadastrosProvider = ({ children }) => {
         .from('programacao')
         .select('*')
         .order('data', { ascending: false })
+        .order('id', { ascending: true })
         .range(from, from + step - 1);
 
       if (error) {

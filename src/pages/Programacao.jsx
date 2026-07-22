@@ -118,7 +118,8 @@ const Programacao = () => {
       payload.horas_paradas = '00:00';
     }
     setStatusEditId(null);
-    await saveProgramacao(payload, p.id);
+    const ok = await saveProgramacao(payload, p.id);
+    if (!ok) alert('Não foi possível salvar o novo status. Tente novamente.');
   };
 
   const openNew = () => {
