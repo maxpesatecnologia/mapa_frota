@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Plus, Pencil, Trash2, X, Check, Upload, FileText, FileImage, File, Download, MessageSquare, Paperclip, Loader, Filter, Search } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
+import { useAuth } from '../context/AuthContext';
 
 const EMPTY = {
   data: '', placa: '', dia: '', equipamento: '', familia: '', frota: '',
@@ -70,6 +71,7 @@ const Programacao = () => {
     clientes, operadores, equipamentos, statusList, motivosList, itensMotivoList,
     anexosByProg, loadAnexos, loadAnexosBulk, uploadAnexo, deleteAnexo, getAnexoUrl
   } = useCadastros();
+  const { isEditor } = useAuth();
 
   const [form, setForm]           = useState(EMPTY);
   const [editId, setEditId]       = useState(null);
@@ -362,13 +364,15 @@ const Programacao = () => {
               <span style={{ background: '#E30613', color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>!</span>
             )}
           </button>
-          <button onClick={openNew} style={{
-            display: 'flex', alignItems: 'center', gap: '0.4rem',
-            background: '#E30613', color: 'white', border: 'none',
-            padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
-          }}>
-            <Plus size={16} /> Nova Programação
-          </button>
+          {isEditor && (
+            <button onClick={openNew} style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: '#E30613', color: 'white', border: 'none',
+              padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
+            }}>
+              <Plus size={16} /> Nova Programação
+            </button>
+          )}
         </div>
       </div>
 
@@ -460,10 +464,12 @@ const Programacao = () => {
                     onMouseLeave={ev => ev.currentTarget.style.background = 'white'}
                   >
                     <td style={{ padding: '0.85rem 1rem', position: 'sticky', left: 0, background: 'inherit' }}>
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button onClick={() => openEdit(p)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer' }}><Pencil size={14} /></button>
-                        <button onClick={() => handleDelete(p.id)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#E30613', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                      </div>
+                      {isEditor && (
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <button onClick={() => openEdit(p)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer' }}><Pencil size={14} /></button>
+                          <button onClick={() => handleDelete(p.id)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#E30613', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                        </div>
+                      )}
                     </td>
                     {/* Badge Anexos */}
                     <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
@@ -481,7 +487,7 @@ const Programacao = () => {
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.dia || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.frota || '—'}</td>
                     <td style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
-                      {statusEditId === p.id ? (
+                      {isEditor && statusEditId === p.id ? (
                         <select
                           autoFocus
                           defaultValue={p.status || ''}
@@ -492,7 +498,7 @@ const Programacao = () => {
                           <option value="">Selecione...</option>
                           {statusList.map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
                         </select>
-                      ) : (
+                      ) : isEditor ? (
                         <span
                           onClick={() => setStatusEditId(p.id)}
                           title="Clique para editar"
@@ -500,6 +506,8 @@ const Programacao = () => {
                         >
                           {p.status || '—'}
                         </span>
+                      ) : (
+                        <span style={{ padding: '2px 6px', color: '#475569' }}>{p.status || '—'}</span>
                       )}
                     </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500, whiteSpace: 'nowrap' }}>{p.cliente || '—'}</td>
@@ -512,7 +520,7 @@ const Programacao = () => {
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.operador || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.auxiliar || '—'}</td>
                     <td style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
-                      {inlineEdit?.id === p.id ? (
+                      {isEditor && inlineEdit?.id === p.id ? (
                         <input
                           autoFocus
                           type="text"
@@ -522,7 +530,7 @@ const Programacao = () => {
                           onKeyDown={e => { if (e.key === 'Enter') commitInlineEdit(); if (e.key === 'Escape') setInlineEdit(null); }}
                           style={{ width: 100, fontSize: '0.85rem', padding: '2px 6px', border: '1.5px solid #2563eb', borderRadius: 5, outline: 'none' }}
                         />
-                      ) : (
+                      ) : isEditor ? (
                         <span
                           onClick={() => startInlineEdit(p)}
                           title="Clique para editar"
@@ -530,6 +538,8 @@ const Programacao = () => {
                         >
                           {p.parte_diaria || '—'}
                         </span>
+                      ) : (
+                        <span style={{ padding: '2px 6px', color: '#475569' }}>{p.parte_diaria || '—'}</span>
                       )}
                     </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.inicio_operacao || '—'}</td>

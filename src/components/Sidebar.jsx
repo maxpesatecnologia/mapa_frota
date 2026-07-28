@@ -2,9 +2,10 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, LayoutGrid, Map, Upload,
   Building2, Users, Truck, ChevronDown, ChevronRight, Calendar,
-  Activity, List, Tags
+  Activity, List, Tags, LogOut
 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const NAV = [
   { to: '/',          icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
@@ -40,6 +41,7 @@ const linkStyle = ({ isActive }) => ({
 
 const Sidebar = () => {
   const [cadastrosOpen, setCadastrosOpen] = useState(true);
+  const { user, isEditor, signOut } = useAuth();
 
   return (
     <aside style={{
@@ -119,8 +121,29 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer */}
-      <div style={{ padding: '1rem', borderTop: '1px solid #1e293b', fontSize: '0.68rem', color: '#334155' }}>
-        Maxpesa © 2026
+      <div style={{ padding: '0.85rem 1rem', borderTop: '1px solid #1e293b' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.email}
+            </div>
+            <div style={{ fontSize: '0.65rem', color: isEditor ? '#FF6A00' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {isEditor ? 'Editor' : 'Somente leitura'}
+            </div>
+          </div>
+          <button
+            onClick={signOut}
+            title="Sair"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0.4rem', borderRadius: 6, border: 'none', background: '#1e293b',
+              color: '#94a3b8', cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            <LogOut size={15} />
+          </button>
+        </div>
+        <div style={{ fontSize: '0.68rem', color: '#334155' }}>Maxpesa © 2026</div>
       </div>
     </aside>
   );

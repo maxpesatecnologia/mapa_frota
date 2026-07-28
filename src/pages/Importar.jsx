@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
 import { Upload, Download, Database, RefreshCw, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
+import { useAuth } from '../context/AuthContext';
 import { generateTemplateProgramacao, exportToExcelProgramacao } from '../utils/excelParser';
 import { parseExcel } from '../utils/excelParser';
 
 const Importar = () => {
   const { programacoes, importProgramacaoExcel, clearProgramacao, loadProgramacoes } = useCadastros();
+  const { isEditor } = useAuth();
 
   const inputRef = useRef();
   const [parsing, setParsing]       = useState(false);
@@ -74,27 +76,29 @@ const Importar = () => {
         </div>
 
         {/* Importar Excel */}
-        <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderTop: '3px solid #E30613' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            <Upload size={18} color="#E30613" />
-            <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Importar Excel (Programação)</span>
+        {isEditor && (
+          <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderTop: '3px solid #E30613' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <Upload size={18} color="#E30613" />
+              <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Importar Excel (Programação)</span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
+              A planilha substituirá todos os dados existentes no banco.
+            </p>
+            <input ref={inputRef} type="file" accept=".xlsx,.xls,.xlsm" style={{ display: 'none' }} onChange={e => process(e.target.files[0])} />
+            <button onClick={() => inputRef.current?.click()} disabled={parsing} style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              padding: '0.55rem 1.1rem', borderRadius: 8, border: 'none',
+              background: parsing ? '#7f1d1d' : '#E30613', color: 'white',
+              fontWeight: 600, fontSize: '0.85rem', cursor: parsing ? 'not-allowed' : 'pointer',
+              opacity: parsing ? 0.7 : 1,
+            }}>
+              {parsing ? <><RefreshCw size={14} /> Importando...</> : <><FileSpreadsheet size={14} /> Selecionar Planilha</>}
+            </button>
+            {imported !== null && <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#16a34a', fontWeight: 600 }}>✓ {imported} registros importados!</p>}
+            {parseError && <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#E30613' }}>⚠️ {parseError}</p>}
           </div>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
-            A planilha substituirá todos os dados existentes no banco.
-          </p>
-          <input ref={inputRef} type="file" accept=".xlsx,.xls,.xlsm" style={{ display: 'none' }} onChange={e => process(e.target.files[0])} />
-          <button onClick={() => inputRef.current?.click()} disabled={parsing} style={{
-            display: 'flex', alignItems: 'center', gap: '0.4rem',
-            padding: '0.55rem 1.1rem', borderRadius: 8, border: 'none',
-            background: parsing ? '#7f1d1d' : '#E30613', color: 'white',
-            fontWeight: 600, fontSize: '0.85rem', cursor: parsing ? 'not-allowed' : 'pointer',
-            opacity: parsing ? 0.7 : 1,
-          }}>
-            {parsing ? <><RefreshCw size={14} /> Importando...</> : <><FileSpreadsheet size={14} /> Selecionar Planilha</>}
-          </button>
-          {imported !== null && <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#16a34a', fontWeight: 600 }}>✓ {imported} registros importados!</p>}
-          {parseError && <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#E30613' }}>⚠️ {parseError}</p>}
-        </div>
+        )}
 
         {/* Exportar Excel */}
         <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderTop: '3px solid #16a34a' }}>
@@ -140,7 +144,7 @@ const Importar = () => {
         </div>
 
         {/* Limpar banco */}
-        {programacoes.length > 0 && (
+        {isEditor && programacoes.length > 0 && (
           <div style={{ background: 'white', borderRadius: 12, padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderTop: '3px solid #ef4444' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <Trash2 size={18} color="#ef4444" />

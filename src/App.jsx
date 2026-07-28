@@ -2,7 +2,10 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { FleetProvider }     from './context/FleetContext';
 import { CadastrosProvider } from './context/CadastrosContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
+
+const Login = lazy(() => import('./pages/Login'));
 
 // Lazy loading — cada página só é carregada quando o usuário navega até ela
 const Dashboard    = lazy(() => import('./pages/Dashboard'));
@@ -45,8 +48,20 @@ const Layout = ({ children }) => (
   </div>
 );
 
-const App = () => (
-  <BrowserRouter>
+const AuthGate = () => {
+  const { session, loading } = useAuth();
+
+  if (loading) return <PageLoader />;
+
+  if (!session) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Login />
+      </Suspense>
+    );
+  }
+
+  return (
     <FleetProvider>
       <CadastrosProvider>
         <Layout>
@@ -66,6 +81,14 @@ const App = () => (
         </Layout>
       </CadastrosProvider>
     </FleetProvider>
+  );
+};
+
+const App = () => (
+  <BrowserRouter>
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   </BrowserRouter>
 );
 

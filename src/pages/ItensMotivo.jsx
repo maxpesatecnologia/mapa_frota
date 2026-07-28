@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, X, Check, Tags } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
+import { useAuth } from '../context/AuthContext';
 
 const EMPTY = { nome: '', numero: '', motivo_id: '' };
 
 const ItensMotivo = () => {
   const { itensMotivoList, motivosList, saveItemMotivo, deleteItemMotivo } = useCadastros();
+  const { isEditor } = useAuth();
   const [form, setForm]         = useState(EMPTY);
   const [editId, setEditId]     = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -46,13 +48,15 @@ const ItensMotivo = () => {
             {itensMotivoList.length} item(ns) cadastrado(s)
           </p>
         </div>
-        <button onClick={openNew} style={{
-          display: 'flex', alignItems: 'center', gap: '0.4rem',
-          background: '#E30613', color: 'white', border: 'none',
-          padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
-        }}>
-          <Plus size={16} /> Novo Item
-        </button>
+        {isEditor && (
+          <button onClick={openNew} style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            background: '#E30613', color: 'white', border: 'none',
+            padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
+          }}>
+            <Plus size={16} /> Novo Item
+          </button>
+        )}
       </div>
 
       <input
@@ -90,10 +94,12 @@ const ItensMotivo = () => {
                   {motivosList.find(m => m.id === item.motivo_id)?.nome || '-'}
                 </td>
                 <td style={{ padding: '0.85rem 1rem' }}>
-                  <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                    <button onClick={() => openEdit(item)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer' }}><Pencil size={14} /></button>
-                    <button onClick={() => handleDelete(item.id)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#E30613', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                  </div>
+                  {isEditor && (
+                    <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                      <button onClick={() => openEdit(item)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer' }}><Pencil size={14} /></button>
+                      <button onClick={() => handleDelete(item.id)} style={{ padding: '0.35rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#E30613', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
