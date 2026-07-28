@@ -61,6 +61,7 @@ const Sidebar = () => {
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
+        flexShrink: 0,
       }}>
         <div style={{
           width: 36, height: 36, borderRadius: '50%',
@@ -77,7 +78,7 @@ const Sidebar = () => {
       </div>
 
       {/* Main nav */}
-      <nav style={{ padding: '0.75rem 0', flex: 1 }}>
+      <nav style={{ padding: '0.75rem 0', flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {NAV.map(({ to, icon, label }) => (
           <NavLink key={to} to={to} end={to === '/'} style={linkStyle}>
             {icon} {label}
@@ -121,7 +122,7 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer */}
-      <div style={{ padding: '0.85rem 1rem', borderTop: '1px solid #1e293b' }}>
+      <div style={{ padding: '0.85rem 1rem', borderTop: '1px solid #1e293b', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
