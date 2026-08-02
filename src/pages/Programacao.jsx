@@ -4,7 +4,7 @@ import { useCadastros } from '../context/CadastrosContext';
 import { useAuth } from '../context/AuthContext';
 
 const EMPTY = {
-  data: '', placa: '', dia: '', equipamento: '', familia: '', frota: '',
+  data: '', placa: '', dia: '', turno: '', equipamento: '', familia: '', frota: '',
   status: '', cliente: '', config_equipamento: '', operador: '', auxiliar: '', parte_diaria: '',
   inicio_operacao: '', intervalo: '', fim_operacao: '', total_horas: '',
   houve_quebra: false, motivo: '', item_motivo: '', horas_paradas: '00:00',
@@ -14,8 +14,8 @@ const EMPTY = {
 };
 
 const TABLE_HEADERS = [
-  'Ações', 'Anexos', 'Data', 'Dia', 'Frota', 'Status', 'Cliente', 'Placa', 'Equipamento', 'Família',
-  'Configuração', 'Operador', 'Auxiliar', 'Parte Diária', 'Início', 'Intervalo', 'Fim',
+  'Ações', 'Anexos', 'Parte Diária', 'Data', 'Dia', 'Turno', 'Operador', 'Status', 'Cliente', 'Frota', 'Placa',
+  'Equipamento', 'Família', 'Configuração', 'Auxiliar', 'Início', 'Intervalo', 'Fim',
   'Total Horas', 'Quebra?', 'Motivo', 'Item', 'Horas Paradas',
   'KM Inicial', 'KM Final', 'KM Total',
   'Horímetro Inicial', 'Horímetro Final', 'Horímetro Total',
@@ -483,9 +483,33 @@ const Programacao = () => {
                         </button>
                       ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
                     </td>
+                    <td style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+                      {isEditor && inlineEdit?.id === p.id ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          value={inlineEdit.value}
+                          onChange={e => { const v = e.target.value; inlineEditRef.current = { ...inlineEditRef.current, value: v }; setInlineEdit(prev => ({ ...prev, value: v })); }}
+                          onBlur={commitInlineEdit}
+                          onKeyDown={e => { if (e.key === 'Enter') commitInlineEdit(); if (e.key === 'Escape') setInlineEdit(null); }}
+                          style={{ width: 100, fontSize: '0.85rem', padding: '2px 6px', border: '1.5px solid #2563eb', borderRadius: 5, outline: 'none' }}
+                        />
+                      ) : isEditor ? (
+                        <span
+                          onClick={() => startInlineEdit(p)}
+                          title="Clique para editar"
+                          style={{ cursor: 'pointer', padding: '2px 6px', borderRadius: 5, color: '#475569', display: 'inline-block', minWidth: 40, borderBottom: '1px dashed #cbd5e1' }}
+                        >
+                          {p.parte_diaria || '—'}
+                        </span>
+                      ) : (
+                        <span style={{ padding: '2px 6px', color: '#475569' }}>{p.parte_diaria || '—'}</span>
+                      )}
+                    </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'nowrap' }}>{p.data ? new Date(p.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.dia || '—'}</td>
-                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.frota || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.turno || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.operador || '—'}</td>
                     <td style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                       {isEditor && statusEditId === p.id ? (
                         <select
@@ -511,37 +535,14 @@ const Programacao = () => {
                       )}
                     </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500, whiteSpace: 'nowrap' }}>{p.cliente || '—'}</td>
+                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.frota || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', color: '#1e293b', background: '#f1f5f9', padding: '2px 8px', borderRadius: 6 }}>{p.placa || '—'}</span>
                     </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.equipamento || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.familia || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.config_equipamento || '—'}</td>
-                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.operador || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.auxiliar || '—'}</td>
-                    <td style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
-                      {isEditor && inlineEdit?.id === p.id ? (
-                        <input
-                          autoFocus
-                          type="text"
-                          value={inlineEdit.value}
-                          onChange={e => { const v = e.target.value; inlineEditRef.current = { ...inlineEditRef.current, value: v }; setInlineEdit(prev => ({ ...prev, value: v })); }}
-                          onBlur={commitInlineEdit}
-                          onKeyDown={e => { if (e.key === 'Enter') commitInlineEdit(); if (e.key === 'Escape') setInlineEdit(null); }}
-                          style={{ width: 100, fontSize: '0.85rem', padding: '2px 6px', border: '1.5px solid #2563eb', borderRadius: 5, outline: 'none' }}
-                        />
-                      ) : isEditor ? (
-                        <span
-                          onClick={() => startInlineEdit(p)}
-                          title="Clique para editar"
-                          style={{ cursor: 'pointer', padding: '2px 6px', borderRadius: 5, color: '#475569', display: 'inline-block', minWidth: 40, borderBottom: '1px dashed #cbd5e1' }}
-                        >
-                          {p.parte_diaria || '—'}
-                        </span>
-                      ) : (
-                        <span style={{ padding: '2px 6px', color: '#475569' }}>{p.parte_diaria || '—'}</span>
-                      )}
-                    </td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.inicio_operacao || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.intervalo || '—'}</td>
                     <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}>{p.fim_operacao || '—'}</td>
@@ -609,6 +610,14 @@ const Programacao = () => {
                 <div>
                   <label style={labelStyle}>Dia da Semana</label>
                   <input type="text" value={form.dia} readOnly style={{ ...inputStyle, background: '#f8fafc' }} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Turno</label>
+                  <select value={form.turno} onChange={e => setForm(f => ({ ...f, turno: e.target.value }))} style={inputStyle}>
+                    <option value="">Selecione...</option>
+                    <option value="1º Turno">1º Turno</option>
+                    <option value="2º Turno">2º Turno</option>
+                  </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Placa *</label>

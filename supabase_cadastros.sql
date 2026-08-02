@@ -157,3 +157,9 @@ ALTER TABLE programacao ADD COLUMN IF NOT EXISTS horimetro_inicial numeric;
 ALTER TABLE programacao ADD COLUMN IF NOT EXISTS horimetro_final   numeric;
 ALTER TABLE programacao ADD COLUMN IF NOT EXISTS horimetro_total   numeric;
 CREATE POLICY "storage_prog_delete" ON storage.objects FOR DELETE USING (bucket_id = 'programacao-anexos');
+
+-- ══════════════════════════════════════════════════════
+-- MIGRATION: Turno na Programação
+-- Execute no Supabase > SQL Editor
+-- ══════════════════════════════════════════════════════
+ALTER TABLE programacao ADD COLUMN IF NOT EXISTS turno text;
