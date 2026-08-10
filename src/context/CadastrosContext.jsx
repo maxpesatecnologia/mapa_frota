@@ -291,39 +291,47 @@ export const CadastrosProvider = ({ children }) => {
 
   const importProgramacaoExcel = async (parsedData) => {
     try {
-      const { error: delError } = await supabase
-        .from('programacao')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      if (delError) throw delError;
+      const chave = (placa, data) => `${(placa || '').toString().trim().toUpperCase()}|${data || ''}`;
+      const existentes = new Set(programacoes.map(p => chave(p.placa, p.data)));
+      const vistos = new Set();
+      let duplicados = 0;
 
-      const toInsert = parsedData.map(d => ({
-        data: d.iso_date || null,
-        placa: d.placa,
-        dia: d.dia,
-        equipamento: d.equipamento,
-        familia: d.familia,
-        frota: d.frota,
-        status: d.status,
-        cliente: d.cliente,
-        config_equipamento: d.config_equipamento,
-        operador: d.operador,
-        parte_diaria: d.parte_diaria,
-        inicio_operacao: d.inicio_operacao,
-        intervalo: d.intervalo,
-        fim_operacao: d.fim_operacao,
-        total_horas: d.total_horas !== null ? String(d.total_horas) : null,
-        houve_quebra: String(d.houve_quebra).toLowerCase() === 'sim' || String(d.houve_quebra).toLowerCase() === 'true',
-        motivo: d.motivo,
-        item_motivo: d.item_motivo,
-        horas_paradas: d.horas_paradas !== null ? String(d.horas_paradas) : null,
-        km_inicial: d.km_inicial,
-        km_final: d.km_final,
-        km_total: d.km_total,
-        horimetro_inicial: d.horimetro_inicial,
-        horimetro_final: d.horimetro_final,
-        horimetro_total: d.horimetro_total,
-      }));
+      const toInsert = parsedData.reduce((acc, d) => {
+        const k = chave(d.placa, d.iso_date);
+        if (existentes.has(k) || vistos.has(k)) {
+          duplicados++;
+          return acc;
+        }
+        vistos.add(k);
+        acc.push({
+          data: d.iso_date || null,
+          placa: d.placa,
+          dia: d.dia,
+          equipamento: d.equipamento,
+          familia: d.familia,
+          frota: d.frota,
+          status: d.status,
+          cliente: d.cliente,
+          config_equipamento: d.config_equipamento,
+          operador: d.operador,
+          parte_diaria: d.parte_diaria,
+          inicio_operacao: d.inicio_operacao,
+          intervalo: d.intervalo,
+          fim_operacao: d.fim_operacao,
+          total_horas: d.total_horas !== null ? String(d.total_horas) : null,
+          houve_quebra: String(d.houve_quebra).toLowerCase() === 'sim' || String(d.houve_quebra).toLowerCase() === 'true',
+          motivo: d.motivo,
+          item_motivo: d.item_motivo,
+          horas_paradas: d.horas_paradas !== null ? String(d.horas_paradas) : null,
+          km_inicial: d.km_inicial,
+          km_final: d.km_final,
+          km_total: d.km_total,
+          horimetro_inicial: d.horimetro_inicial,
+          horimetro_final: d.horimetro_final,
+          horimetro_total: d.horimetro_total,
+        });
+        return acc;
+      }, []);
 
       const chunkSize = 500;
       for (let i = 0; i < toInsert.length; i += chunkSize) {
@@ -331,9 +339,9 @@ export const CadastrosProvider = ({ children }) => {
         const { error } = await supabase.from('programacao').insert(chunk);
         if (error) throw error;
       }
-      
+
       await loadProgramacoes();
-      return true;
+      return { inseridos: toInsert.length, duplicados, total: parsedData.length };
     } catch (e) {
       console.error('Erro na importação de programacao:', e);
       throw e;

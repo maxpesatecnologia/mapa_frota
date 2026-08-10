@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, X, Check, Truck } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, Truck, Download } from 'lucide-react';
 import { useCadastros } from '../context/CadastrosContext';
 import { useAuth } from '../context/AuthContext';
+import { exportToExcelEquipamentos } from '../utils/excelParser';
 
 const EMPTY = { placa: '', equipamento: '', frota: '', familia: '' };
 
@@ -53,15 +54,29 @@ const Equipamentos = () => {
             {equipamentos.length} cadastrado(s) · {familiaGroups.length} família(s)
           </p>
         </div>
-        {isEditor && (
-          <button onClick={openNew} style={{
-            display: 'flex', alignItems: 'center', gap: '0.4rem',
-            background: '#E30613', color: 'white', border: 'none',
-            padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
-          }}>
-            <Plus size={16} /> Novo Equipamento
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => exportToExcelEquipamentos(filtered, `relatorio_equipamentos_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`)}
+            disabled={filtered.length === 0}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: 'white', color: '#475569', border: '1px solid #e2e8f0',
+              padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem',
+              cursor: filtered.length === 0 ? 'not-allowed' : 'pointer', opacity: filtered.length === 0 ? 0.5 : 1,
+            }}
+          >
+            <Download size={16} /> Exportar Relatório
           </button>
-        )}
+          {isEditor && (
+            <button onClick={openNew} style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: '#E30613', color: 'white', border: 'none',
+              padding: '0.55rem 1.1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
+            }}>
+              <Plus size={16} /> Novo Equipamento
+            </button>
+          )}
+        </div>
       </div>
 
       <input

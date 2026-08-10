@@ -272,3 +272,14 @@ export const exportToExcelProgramacao = (data, fileName = 'programacao_export.xl
   XLSX.utils.book_append_sheet(wb, ws, 'Programacao');
   XLSX.writeFile(wb, fileName);
 };
+
+export const exportToExcelEquipamentos = (data, fileName = 'relatorio_equipamentos.xlsx') => {
+  const headers = ['Placa', 'Equipamento', 'Frota', 'Família'];
+  const rows = data.map(e => [e.placa, e.equipamento, e.frota, e.familia]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map(() => ({ wch: 22 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Equipamentos');
+  XLSX.writeFile(wb, fileName);
+};

@@ -24,8 +24,8 @@ const Importar = () => {
     try {
       const data = await parseExcel(file);
       if (data.length === 0) throw new Error('Nenhum dado encontrado na planilha.');
-      const ok = await importProgramacaoExcel(data);
-      if (ok) setImported(data.length);
+      const resultado = await importProgramacaoExcel(data);
+      if (resultado) setImported(resultado);
     } catch (e) {
       setParseError(e.message || 'Erro ao processar a planilha.');
     } finally {
@@ -83,7 +83,8 @@ const Importar = () => {
               <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Importar Excel (Programação)</span>
             </div>
             <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
-              A planilha substituirá todos os dados existentes no banco.
+              Os registros da planilha serão adicionados ao banco, sem apagar os dados já existentes.
+              Linhas com a mesma placa + data de um registro já existente são ignoradas automaticamente.
             </p>
             <input ref={inputRef} type="file" accept=".xlsx,.xls,.xlsm" style={{ display: 'none' }} onChange={e => process(e.target.files[0])} />
             <button onClick={() => inputRef.current?.click()} disabled={parsing} style={{
@@ -95,7 +96,12 @@ const Importar = () => {
             }}>
               {parsing ? <><RefreshCw size={14} /> Importando...</> : <><FileSpreadsheet size={14} /> Selecionar Planilha</>}
             </button>
-            {imported !== null && <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#16a34a', fontWeight: 600 }}>✓ {imported} registros importados!</p>}
+            {imported !== null && (
+              <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#16a34a', fontWeight: 600 }}>
+                ✓ {imported.inseridos} registro(s) adicionado(s)
+                {imported.duplicados > 0 && ` · ${imported.duplicados} duplicado(s) ignorado(s)`}
+              </p>
+            )}
             {parseError && <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#E30613' }}>⚠️ {parseError}</p>}
           </div>
         )}
