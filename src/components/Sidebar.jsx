@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import logoMaxpesa from '../assets/logo-maxpesa.png';
 
 const NAV = [
   { to: '/',          icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
@@ -47,8 +48,8 @@ const Sidebar = () => {
     <aside style={{
       width: 220,
       minWidth: 220,
-      background: '#0f172a',
-      borderRight: '1px solid #1e293b',
+      background: '#eceff3',
+      borderRight: '1px solid #d8dde3',
       display: 'flex',
       flexDirection: 'column',
       height: '100vh',
@@ -56,25 +57,17 @@ const Sidebar = () => {
     }}>
       {/* Logo */}
       <div style={{
-        padding: '1.25rem 1rem',
-        borderBottom: '1px solid #1e293b',
+        padding: '1.5rem 1rem',
+        borderBottom: '1px solid #d8dde3',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: '0.75rem',
+        justifyContent: 'center',
+        gap: '0.5rem',
         flexShrink: 0,
       }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%',
-          background: '#E30613',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <span style={{ color: 'white', fontFamily: 'Oswald', fontWeight: 700, fontSize: '1.1rem' }}>M</span>
-        </div>
-        <div style={{ lineHeight: 1.15 }}>
-          <div style={{ fontFamily: 'Oswald', fontWeight: 700, fontSize: '0.9rem', color: 'white' }}>MAPA OPERACIONAL</div>
-          <div style={{ fontFamily: 'Oswald', fontWeight: 500, fontSize: '0.62rem', color: '#FF6A00', letterSpacing: '2px' }}>FROTA MAXPESA</div>
-        </div>
+        <img src={logoMaxpesa} alt="Grupo Maxpesa" style={{ height: 56, width: 'auto', flexShrink: 0 }} />
+        <div style={{ fontFamily: 'Oswald', fontWeight: 600, fontSize: '0.75rem', color: '#0f172a', letterSpacing: '1px' }}>MAPA DA FROTA</div>
       </div>
 
       {/* Main nav */}
@@ -113,7 +106,7 @@ const Sidebar = () => {
         </div>
 
         {/* Divisor */}
-        <div style={{ height: 1, background: '#1e293b', margin: '0.75rem 1rem' }} />
+        <div style={{ height: 1, background: '#d8dde3', margin: '0.75rem 1rem' }} />
 
         {/* Importar */}
         <NavLink to="/importar" style={linkStyle}>
@@ -122,10 +115,10 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer */}
-      <div style={{ padding: '0.85rem 1rem', borderTop: '1px solid #1e293b', flexShrink: 0 }}>
+      <div style={{ padding: '0.85rem 1rem', borderTop: '1px solid #d8dde3', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: '0.75rem', color: '#1e293b', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user?.email}
             </div>
             <div style={{ fontSize: '0.65rem', color: isEditor ? '#FF6A00' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -137,14 +130,14 @@ const Sidebar = () => {
             title="Sair"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0.4rem', borderRadius: 6, border: 'none', background: '#1e293b',
-              color: '#94a3b8', cursor: 'pointer', flexShrink: 0,
+              padding: '0.4rem', borderRadius: 6, border: 'none', background: '#dde2e8',
+              color: '#64748b', cursor: 'pointer', flexShrink: 0,
             }}
           >
             <LogOut size={15} />
           </button>
         </div>
-        <div style={{ fontSize: '0.68rem', color: '#334155' }}>Maxpesa © 2026</div>
+        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Maxpesa © 2026</div>
       </div>
     </aside>
   );
