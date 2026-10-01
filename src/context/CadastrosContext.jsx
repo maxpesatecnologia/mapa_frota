@@ -296,6 +296,16 @@ export const CadastrosProvider = ({ children }) => {
       const vistos = new Set();
       let duplicados = 0;
 
+      // Planilha pode trazer o número do item (ex: "1") — numeração é por motivo, então converte motivo+número no nome do cadastro
+      const norm = (s) => (s || '').toString().trim().toUpperCase();
+      const resolveItemMotivo = (motivo, item) => {
+        const valor = (item ?? '').toString().trim();
+        if (!/^\d+$/.test(valor)) return item;
+        const m = motivosList.find(mo => norm(mo.nome) === norm(motivo));
+        const it = m && itensMotivoList.find(i => i.motivo_id === m.id && String(i.numero) === valor);
+        return it ? it.nome : item;
+      };
+
       const toInsert = parsedData.reduce((acc, d) => {
         const k = chave(d.placa, d.iso_date);
         if (existentes.has(k) || vistos.has(k)) {
@@ -321,7 +331,7 @@ export const CadastrosProvider = ({ children }) => {
           total_horas: d.total_horas !== null ? String(d.total_horas) : null,
           houve_quebra: String(d.houve_quebra).toLowerCase() === 'sim' || String(d.houve_quebra).toLowerCase() === 'true',
           motivo: d.motivo,
-          item_motivo: d.item_motivo,
+          item_motivo: resolveItemMotivo(d.motivo, d.item_motivo),
           horas_paradas: d.horas_paradas !== null ? String(d.horas_paradas) : null,
           km_inicial: d.km_inicial,
           km_final: d.km_final,
