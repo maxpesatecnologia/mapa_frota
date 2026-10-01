@@ -85,7 +85,9 @@ const Programacao = () => {
   const [filterFrota,      setFilterFrota]      = useState('all');
   const [filterDataInicio, setFilterDataInicio] = useState('');
   const [filterDataFim,    setFilterDataFim]    = useState('');
-  const [showFilters,      setShowFilters]      = useState(false);
+  const [filterParteDiaria, setFilterParteDiaria] = useState('all');
+  const [filterParteNum,    setFilterParteNum]    = useState('');
+  const [showFilters,     setShowFilters]      = useState(false);
   const [dragOver, setDragOver]   = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState('');
@@ -295,13 +297,17 @@ const Programacao = () => {
       if (filterFrota      !== 'all' && r.frota   !== filterFrota)   return false;
       if (filterDataInicio && String(r.data || '').slice(0, 10) < filterDataInicio) return false;
       if (filterDataFim    && String(r.data || '').slice(0, 10) > filterDataFim)    return false;
+      const parte = String(r.parte_diaria || '').trim();
+      if (filterParteDiaria === 'com' && !parte) return false;
+      if (filterParteDiaria === 'sem' &&  parte) return false;
+      if (filterParteNum && !parte.toLowerCase().includes(filterParteNum.trim().toLowerCase())) return false;
       if (q) {
         const hay = [r.placa, r.frota, r.equipamento, r.operador, r.cliente, r.familia].join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [programacoes, search, filterStatus, filterFamilia, filterCliente, filterFrota, filterDataInicio, filterDataFim]);
+  }, [programacoes, search, filterStatus, filterFamilia, filterCliente, filterFrota, filterDataInicio, filterDataFim, filterParteDiaria, filterParteNum]);
 
   const displayed = useMemo(() => filtered.slice(0, displayCount), [filtered, displayCount]);
 
@@ -310,19 +316,20 @@ const Programacao = () => {
     if (displayed.length > 0) loadAnexosBulk(displayed.map(p => p.id));
   }, [displayedIdsKey]);
 
-  const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterFrota !== 'all' || filterDataInicio || filterDataFim;
+  const hasFilters = search || filterStatus !== 'all' || filterFamilia !== 'all' || filterCliente !== 'all' || filterFrota !== 'all' || filterDataInicio || filterDataFim || filterParteDiaria !== 'all' || filterParteNum;
 
   const clearFilters = () => {
     setSearch(''); setFilterStatus('all');
     setFilterFamilia('all'); setFilterCliente('all');
     setFilterFrota('all');
     setFilterDataInicio(''); setFilterDataFim('');
+    setFilterParteDiaria('all'); setFilterParteNum('');
   };
 
   // Reseta a paginação ao filtrar
   useEffect(() => {
     setDisplayCount(100);
-  }, [search, filterStatus, filterFamilia, filterCliente, filterFrota, filterDataInicio, filterDataFim]);
+  }, [search, filterStatus, filterFamilia, filterCliente, filterFrota, filterDataInicio, filterDataFim, filterParteDiaria, filterParteNum]);
 
   // ── ESTILOS REUTILIZÁVEIS ───────────────────────────────────────────
   const inputStyle = {
@@ -416,6 +423,19 @@ const Programacao = () => {
             <option value="all">Todas as frotas</option>
             {frotasOpts.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
+
+          <select value={filterParteDiaria} onChange={e => setFilterParteDiaria(e.target.value)}
+            style={{ padding: '0.45rem 0.65rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#374151', background: 'white', cursor: 'pointer' }}>
+            <option value="all">Parte diária: todas</option>
+            <option value="com">Com parte diária</option>
+            <option value="sem">Sem parte diária</option>
+          </select>
+
+          <input
+            value={filterParteNum} onChange={e => setFilterParteNum(e.target.value)}
+            placeholder="Nº parte diária"
+            style={{ width: 130, padding: '0.45rem 0.65rem', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.8rem', color: '#1e293b', outline: 'none' }}
+          />
 
           <div style={{ width: 1, height: 28, background: '#e2e8f0', flexShrink: 0 }} />
 
