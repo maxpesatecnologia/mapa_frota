@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api-docs",
+      "destination": "/api-docs.html"
+    },
+    {
       "source": "/api/v1/:recurso",
       "destination": "/api/v1?recurso=:recurso"
     },

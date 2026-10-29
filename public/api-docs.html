@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>API Mapa Frota Maxpesa</title>
+<style>
+  :root { --bg:#fff; --fg:#0f172a; --muted:#475569; --line:#e2e8f0; --code:#f1f5f9; --brand:#E30613; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f172a; --fg:#e2e8f0; --muted:#94a3b8; --line:#334155; --code:#1e293b; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 Inter, system-ui, sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { font-family:Oswald, Inter, sans-serif; margin:0 0 4px; border-left:6px solid var(--brand); padding-left:12px; }
+  h2 { margin-top:40px; border-bottom:1px solid var(--line); padding-bottom:6px; }
+  p.sub { color:var(--muted); margin-top:0; }
+  code, pre { background:var(--code); border-radius:6px; font:14px/1.5 ui-monospace, Consolas, monospace; }
+  code { padding:2px 6px; }
+  pre { padding:14px; overflow-x:auto; }
+  pre code { padding:0; background:none; }
+  table { width:100%; border-collapse:collapse; display:block; overflow-x:auto; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+</style>
+</head>
+<body>
+<main>
+<h1>API Mapa Frota Maxpesa</h1>
+<p class="sub">v1 &middot; REST, somente leitura, JSON</p>
+
+<p><strong>URL base:</strong> <code>https://mapa-frota.vercel.app/api/v1</code></p>
+
+<h2>Autenticação</h2>
+<p>Toda chamada precisa da chave de API, fornecida separadamente pela Maxpesa. Envie em um dos headers:</p>
+<pre><code>x-api-key: &lt;SUA_CHAVE&gt;
+Authorization: Bearer &lt;SUA_CHAVE&gt;</code></pre>
+<p>Sem chave ou com chave errada, a resposta é <code>401</code>. Só o método <code>GET</code> é aceito.</p>
+
+<h2>Recursos</h2>
+<p><code>GET /api/v1</code> lista os recursos. Cada um fica em <code>GET /api/v1/{recurso}</code>.</p>
+<table>
+<tr><th>Recurso</th><th>Conteúdo</th></tr>
+<tr><td><code>programacao</code></td><td>Programação diária por placa e data (status, cliente, operador, horários, quebras, motivo, km)</td></tr>
+<tr><td><code>programacao_anexos</code></td><td>Metadados dos anexos de cada programação (<code>programacao_id</code>, <code>nome_arquivo</code>, <code>storage_path</code>, <code>tipo_arquivo</code>, <code>tamanho_bytes</code>)</td></tr>
+<tr><td><code>equipamentos</code></td><td>Cadastro de equipamentos (placa, frota, equipamento, família)</td></tr>
+<tr><td><code>clientes</code></td><td>Cadastro de clientes</td></tr>
+<tr><td><code>operadores</code></td><td>Cadastro de operadores</td></tr>
+<tr><td><code>status_programacao</code></td><td>Códigos de status da programação</td></tr>
+<tr><td><code>motivos</code></td><td>Motivos de parada/quebra</td></tr>
+<tr><td><code>itens_motivo</code></td><td>Itens de cada motivo</td></tr>
+</table>
+
+<h2>Parâmetros</h2>
+<table>
+<tr><th>Parâmetro</th><th>Descrição</th></tr>
+<tr><td><code>limit</code></td><td>Registros por chamada. Padrão 500, máximo 1000</td></tr>
+<tr><td><code>offset</code></td><td>Posição inicial (paginação). Padrão 0</td></tr>
+<tr><td><code>data_ini</code>, <code>data_fim</code></td><td>Só em <code>programacao</code>. Formato <code>AAAA-MM-DD</code>, limites inclusivos</td></tr>
+<tr><td>qualquer coluna</td><td>Filtro de igualdade, ex.: <code>?placa=ABC1234</code> ou <code>?programacao_id=&lt;uuid&gt;</code></td></tr>
+</table>
+<p>Os filtros se combinam (E lógico). Uma coluna inexistente retorna <code>400</code>.</p>
+
+<h2>Resposta</h2>
+<pre><code>{
+  "recurso": "equipamentos",
+  "total": 87,
+  "limit": 500,
+  "offset": 0,
+  "proximo_offset": null,
+  "data": [ { "id": "...", "placa": "ED-10-012", "...": "..." } ]
+}</code></pre>
+<p><code>total</code> é o número de registros que atendem aos filtros. <code>proximo_offset</code> é o <code>offset</code> da próxima página, ou <code>null</code> quando acabou.</p>
+
+<h2>Paginação</h2>
+<p>Repita a chamada usando <code>proximo_offset</code> como <code>offset</code> até ele vir <code>null</code>. A <code>programacao</code> tem cerca de 25 mil registros: uns 25 requests com <code>limit=1000</code>.</p>
+
+<h2>Exemplos</h2>
+<pre><code># Equipamentos
+curl -H "x-api-key: $CHAVE" "https://mapa-frota.vercel.app/api/v1/equipamentos?limit=10"
+
+# Programação de uma placa em agosto de 2026
+curl -H "x-api-key: $CHAVE" \
+  "https://mapa-frota.vercel.app/api/v1/programacao?placa=ABC1234&amp;data_ini=2026-08-01&amp;data_fim=2026-08-31"
+
+# Anexos de uma programação
+curl -H "x-api-key: $CHAVE" \
+  "https://mapa-frota.vercel.app/api/v1/programacao_anexos?programacao_id=&lt;uuid&gt;"</code></pre>
+<pre><code>import requests
+
+BASE = "https://mapa-frota.vercel.app/api/v1"
+H = {"x-api-key": CHAVE}
+
+def buscar_tudo(recurso, **filtros):
+    offset, tudo = 0, []
+    while offset is not None:
+        r = requests.get(f"{BASE}/{recurso}", headers=H,
+                         params={"limit": 1000, "offset": offset, **filtros})
+        r.raise_for_status()
+        j = r.json()
+        tudo += j["data"]
+        offset = j["proximo_offset"]
+    return tudo
+
+programacao = buscar_tudo("programacao", data_ini="2026-08-01")</code></pre>
+
+<h2>Códigos de erro</h2>
+<table>
+<tr><th>Código</th><th>Motivo</th></tr>
+<tr><td>400</td><td>Coluna de filtro inválida ou erro na consulta</td></tr>
+<tr><td>401</td><td>API key ausente ou inválida</td></tr>
+<tr><td>404</td><td>Recurso inexistente</td></tr>
+<tr><td>405</td><td>Método diferente de GET</td></tr>
+<tr><td>500</td><td>Servidor sem configuração</td></tr>
+</table>
+
+<h2>Observações</h2>
+<ul>
+<li>Os dados são lidos em tempo real do banco; não há cache.</li>
+<li>Os anexos retornam só os metadados e o caminho (<code>storage_path</code>), não o arquivo.</li>
+<li>Campos de horário (<code>inicio_operacao</code>, <code>fim_operacao</code>, <code>total_horas</code> etc.) são texto, não número.</li>
+</ul>
+</main>
+</body>
+</html>
