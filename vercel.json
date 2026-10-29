@@ -1,5 +1,16 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/v1/:recurso",
+      "destination": "/api/v1?recurso=:recurso"
+    },
+    {
+      "source": "/api/v1",
+      "destination": "/api/v1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
